@@ -113,6 +113,8 @@ else
 	endif
 endif
 
+export GAME_TITLE := $(TARGET)
+
 .PHONY: bootloader bootstub BootStrap $(BUILD) clean
 
 all:	bootloader bootstub $(BUILD) BootStrap
