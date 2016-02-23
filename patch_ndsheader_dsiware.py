@@ -14,9 +14,9 @@ def skipUntilAddress(f_in,f_out, caddr, taddr):
     chunk = f_in.read(taddr-caddr)
     f_out.write(chunk)
 
-#fname='nds-hb-menu.nds'
+fname='nds-hb-menu.nds'
 #fname='SUDOKU-Electronic_Arts_Inc..nds'
-fname='00000000.nds'
+#fname='00000000.nds'
 
 file = open(fname, 'rb')
 fsize=getSize(file)
@@ -106,24 +106,26 @@ SrlTwlExtHeader = namedtuple('SrlTwlExtHeader',
 	"reserved4")
 srlTwlExtHeaderFormat="<52s4s4s4sI4sIIIIIIIIIIIIIIII8sQ8sIIII8sII192s"
 srlTwlExtHeader=SrlTwlExtHeader._make(unpack_from(srlTwlExtHeaderFormat, data[0x180:0x300]))
-pprint(dict(srlTwlExtHeader._asdict()))
+#pprint(dict(srlTwlExtHeader._asdict()))
 
 # Fix srlTwlExtHeader
 srlTwlExtHeader=srlTwlExtHeader._replace(
-	title_id=			srlHeader.gameCode[::-1]+"\x04\x00\x03\x00",
-	accessControl=		'\x10\x00\x00\x00',
-	arm7ScfgExtMask=	'\x06\x00\x04\x00',
-	arm7iLoadAddress=	srlHeader.arm7RamAddress,
-	arm7iRomOffset=		srlHeader.arm7RomOffset,
-	arm7iSize=			srlHeader.arm7Size,
-	arm9iLoadAddress=	srlHeader.arm9RamAddress,
-	arm9iRomOffset=		srlHeader.arm9RomOffset,
-	arm9iSize=			srlHeader.arm9Size,
-	twlRomSize=			fsize,
-	configSettings=		"\x81\x85\x89\x8d\x80\x84\x88\x8c\x90\x94\x98\x9c\x80\x84\x88\x8c\x90\x94\x98\x9c\x00\x00\x00\x00@7\xc0\x07\x007@\x07\xc07\x00\x08@7\xc0\x07\x007@\x07\x0f\x00\x00\x03\x02\x00\x00\x00",
-	pubSaveDataSize=	81920
+	title_id=			srlHeader.gameCode[::-1]+"\x05\x00\x03\x00'",
+	#accessControl=		'\x10\x00\x00\x00',
+	#arm7ScfgExtMask=	'\x06\x00\x04\x00',
+	#arm7iLoadAddress=	srlHeader.arm7RamAddress,
+	#arm7iRomOffset=		srlHeader.arm7RomOffset,
+	#arm7iSize=			srlHeader.arm7Size,
+	#arm9iLoadAddress=	srlHeader.arm9RamAddress,
+	#arm9iRomOffset=		srlHeader.arm9RomOffset,
+	#arm9iSize=			srlHeader.arm9Size,
+	#twlRomSize=			fsize,
+	#configSettings=		"\x81\x85\x89\x8d\x80\x84\x88\x8c\x90\x94\x98\x9c\x80\x84\x88\x8c\x90\x94\x98\x9c\x00\x00\x00\x00@7\xc0\x07\x007@\x07\xc07\x00\x08@7\xc0\x07\x007@\x07\x0f\x00\x00\x03\x02\x00\x00\x00",
+	#pubSaveDataSize=	81920
+	reserved3=			'\xc0#\x00\x00\x00\x00\x01\x00',
+	reserved_flags=		'\x00\x00\x00\x10'
 	)
-#pprint(dict(srlTwlExtHeader._asdict()))
+pprint(dict(srlTwlExtHeader._asdict()))
 
 data2=pack(*[srlTwlExtHeaderFormat]+srlTwlExtHeader._asdict().values())
 
@@ -137,5 +139,5 @@ skipUntilAddress(filer,filew,0x300,fsize)
 filew.close()
 filer.close()
 
-#os.remove(fname)
-#os.rename(fname+".tmp",fname)
+os.remove(fname)
+os.rename(fname+".tmp",fname)
