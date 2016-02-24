@@ -78,25 +78,26 @@ SrlHeader = namedtuple('SrlHeader',
 	"nintendoLogoCrc "
 	"headerCrc "
 	"debugReserved ")
-srlHeaderFormat='<12s4s2scbb9sbcIIIIIIIIIIIIIIIIIII2cHII8sII56s156s2s32s'
-srlHeader=SrlHeader._make(unpack_from(srlHeaderFormat, data[0:0x17E]))
+srlHeaderFormat='<12s4s2scbb9sbcIIIIIIIIIIIIIIIIIII2s2sII8sII56s156s2s2s32s'
+srlHeader=SrlHeader._make(unpack_from(srlHeaderFormat, data))
 pprint(dict(srlHeader._asdict()))
 
 # Fix srlHeader
 srlHeaderPatched=srlHeader._replace(
-	#arm7Autoload=					33557088,
-	secure_transfer_timeout=		'\xfa',
-	secureDisable=					37224728,
-	secureAreaCrc=					'o',
+	secureAreaCrc=					'o\xfa',
 	secureCardControlRegSettings=	1575160,
 	normalCardControlRegSettings=	5791744,
+	internalFlag=					'\x00',
 	arm9RomOffset=					srlHeader.arm9RomOffset+0x3E80,
 	arm7RomOffset=					srlHeader.arm7RomOffset+0x3E80,
 	fatOffset=						srlHeader.fatOffset+0x3E80,
 	fntOffset=						srlHeader.fntOffset+0x3E80,
-	icon_bannerOffset=				srlHeader.icon_bannerOffset+0x3E80,
-	headerSize=						srlHeader.headerSize+0x3E80,
-	reserved1=						0x4000
+	icon_bannerOffset=				srlHeader.icon_bannerOffset+0x3E80,						
+	ntrRomSize=						srlHeader.ntrRomSize+0x3E80,	
+	headerSize=						0x4000,
+	nintendoLogo= 					"$\xff\xaeQi\x9a\xa2!=\x84\x82\n\x84\xe4\t\xad\x11$\x8b\x98\xc0\x81\x7f!\xa3R\xbe\x19\x93\t\xce \x10FJJ\xf8'1\xecX\xc7\xe83\x82\xe3\xce\xbf\x85\xf4\xdf\x94\xceK\t\xc1\x94V\x8a\xc0\x13r\xa7\xfc\x9f\x84Ms\xa3\xca\x9aaX\x97\xa3'\xfc\x03\x98v#\x1d\xc7a\x03\x04\xaeV\xbf8\x84\x00@\xa7\x0e\xfd\xffR\xfe\x03o\x950\xf1\x97\xfb\xc0\x85`\xd6\x80%\xa9c\xbe\x03\x01N8\xe2\xf9\xa24\xff\xbb>\x03Dx\x00\x90\xcb\x88\x11:\x94e\xc0|c\x87\xf0<\xaf\xd6%\xe4\x8b8\n\xacr!\xd4\xf8\x07",
+	nintendoLogoCrc= 				'V\xcf',
+	headerCrc=						'\x18;'
 	)
 pprint(dict(srlHeaderPatched._asdict()))
 
@@ -138,7 +139,7 @@ SrlTwlExtHeader = namedtuple('SrlTwlExtHeader',
 	"privSaveDataSize "
 	"reserved4")
 srlTwlExtHeaderFormat="<52s4s4s4sI4sIIIIIIIIIIIIIIII8sQ8sIIII8sII192s"
-if srlHeader.reserved1<0x300:
+if srlHeader.headerSize<0x300:
 	#homebrew
 	srlTwlExtHeader=SrlTwlExtHeader._make(unpack_from(srlTwlExtHeaderFormat, "\x00" * (0x300-0x180)))
 else:
@@ -184,7 +185,7 @@ SrlSignedHeader = namedtuple('SrlSignedHeader',
 	"signature "
 	)
 srlSignedHeaderFormat="<s20s20s20s20s20s20s0x40s20s2636s384s128"
-if srlHeader.reserved1<0x1100:
+if srlHeader.headerSize<0x1100:
 	#homebrew
 	srlSignedHeader=SrlSignedHeader._make(unpack_from(srlSignedHeaderFormat, "\x00" * (0x1081-0x300)))
 else:
@@ -209,7 +210,6 @@ data3=pack(*[srlSignedHeaderFormat]+srlSignedHeader._asdict().values())
 # write the file
 filew = open(fname+".tmp", "wb")
 filew.write(data1)
-writeBlankuntilAddress(filew,0x17E,0x180);
 filew.write(data2)
 filew.write(data3[0:0xC80])
 filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
