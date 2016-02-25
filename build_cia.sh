@@ -9,4 +9,6 @@ $DEVKITARM/bin/ndstool -c nds-hb-menu.nds -9 hbmenu.elf -g $GAME_INFO -b icon.bm
 
 python patch_ndsheader_dsiware.py
 
+$DEVKITARM/bin/ndstool -i nds-hb-menu.nds
+
 ./make_cia.exe --srl=nds-hb-menu.nds

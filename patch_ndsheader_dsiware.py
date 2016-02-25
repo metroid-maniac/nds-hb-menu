@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 # inspired by https://github.com/Relys/Project_CTR/blob/master/makerom/srl.h
 # if the header size of the input nds file is 0x200 (homebrew)
 # 	the header size of the output nds file will be patched to 0x4000 (normal ds/dsi header), 0x3E00 offset
@@ -6,6 +7,61 @@ from collections import namedtuple
 from collections import OrderedDict
 from pprint import pprint
 import os, sys
+import binascii
+
+#
+# CRC16 MODULE
+#
+# includes CRC16 and CRC16 MODBUS
+#
+
+from ctypes import c_ushort
+
+# from https://github.com/cristianav/PyCRC/blob/master/demo.py
+class CRC16(object):
+    crc16_tab = []
+
+    # The CRC's are computed using polynomials. Here is the most used
+    # coefficient for CRC16
+    crc16_constant = 0xA001  # 40961
+
+    def __init__(self, modbus_flag=False):
+        # initialize the precalculated tables
+        if not len(self.crc16_tab):
+            self.init_crc16()
+        self.mdflag = bool(modbus_flag)
+
+    def calculate(self, input_data=None):
+        try:
+            is_string = isinstance(input_data, str)
+            is_bytes = isinstance(input_data, (bytes, bytearray))
+
+            if not is_string and not is_bytes:
+                raise Exception("Please provide a string or a byte sequence "
+                                "as argument for calculation.")
+
+            crc_value = 0x0000 if not self.mdflag else 0xffff
+
+            for c in input_data:
+                d = ord(c) if is_string else c
+                tmp = crc_value ^ d
+                rotated = crc_value >> 8
+                crc_value = rotated ^ self.crc16_tab[(tmp & 0x00ff)]
+
+            return crc_value
+        except Exception as e:
+            print("EXCEPTION(calculate): {}".format(e))
+
+    def init_crc16(self):
+        """The algorithm uses tables with precalculated values"""
+        for i in range(0, 256):
+            crc = c_ushort(i).value
+            for j in range(0, 8):
+                if crc & 0x0001:
+                    crc = c_ushort(crc >> 1).value ^ self.crc16_constant
+                else:
+                    crc = c_ushort(crc >> 1).value
+            self.crc16_tab.append(crc)
 
 def getSize(fileobject):
     fileobject.seek(0,2) # move the cursor to the end of the file
@@ -29,9 +85,36 @@ fname='nds-hb-menu.nds'
 
 #offset of 0x4600 created
 
+# File size compute
 file = open(fname, 'rb')
 fsize=getSize(file)
 file.close()
+
+#CRC header compute "CRC-16 (Modbus)"
+file = open(fname, 'rb')
+#0x15E from https://github.com/devkitPro/ndstool/ ... source/header.cpp
+hdr = file.read(0x15E)
+hdrCrc=CRC16(modbus_flag=True).calculate(hdr)
+print("{:10s} {:20X}".format('HDR CRC-16 ModBus', hdrCrc))
+#print "origin header cr c"+hdr[0x15E:0x15F]
+filew = open(fname+".hdr", "wb")
+filew.write(hdr);
+filew.close()
+file.close()
+
+#SecureArea CRC compute "CRC-16 (Modbus)"
+file = open(fname, 'rb')
+#0x15E from https://github.com/devkitPro/ndstool/ ... source/header.cpp
+file.read(0x4000)
+sec = file.read(0x4000)
+secCrc=CRC16(modbus_flag=True).calculate(sec)
+print("{:10s} {:20X}".format('SEC CRC-16 ModBus', secCrc))
+#print "origin header cr c"+hdr[0x15E:0x15F]
+filew = open(fname+".sec", "wb")
+filew.write(sec);
+filew.close()
+file.close()
+
 
 filer = open(fname, 'rb')
 data = filer.read(0x180)
@@ -78,13 +161,15 @@ SrlHeader = namedtuple('SrlHeader',
 	"nintendoLogoCrc "
 	"headerCrc "
 	"debugReserved ")
-srlHeaderFormat='<12s4s2scbb9sbcIIIIIIIIIIIIIIIIIII2s2sII8sII56s156s2s2s32s'
+srlHeaderFormat='<12s4s2scbb9sbcIIIIIIIIIIIIIIIIIIIHHII8sII56s156s2sH32s'
 srlHeader=SrlHeader._make(unpack_from(srlHeaderFormat, data))
-pprint(dict(srlHeader._asdict()))
+#pprint(dict(srlHeader._asdict()))
+print "origin header crc "+hex(srlHeader.headerCrc)
+print "origin secure crc "+hex(srlHeader.secureAreaCrc)
+
 
 # Fix srlHeader
 srlHeaderPatched=srlHeader._replace(
-	secureAreaCrc=					'o\xfa',
 	secureCardControlRegSettings=	1575160,
 	normalCardControlRegSettings=	5791744,
 	internalFlag=					'\x00',
@@ -97,9 +182,21 @@ srlHeaderPatched=srlHeader._replace(
 	headerSize=						0x4000,
 	nintendoLogo= 					"$\xff\xaeQi\x9a\xa2!=\x84\x82\n\x84\xe4\t\xad\x11$\x8b\x98\xc0\x81\x7f!\xa3R\xbe\x19\x93\t\xce \x10FJJ\xf8'1\xecX\xc7\xe83\x82\xe3\xce\xbf\x85\xf4\xdf\x94\xceK\t\xc1\x94V\x8a\xc0\x13r\xa7\xfc\x9f\x84Ms\xa3\xca\x9aaX\x97\xa3'\xfc\x03\x98v#\x1d\xc7a\x03\x04\xaeV\xbf8\x84\x00@\xa7\x0e\xfd\xffR\xfe\x03o\x950\xf1\x97\xfb\xc0\x85`\xd6\x80%\xa9c\xbe\x03\x01N8\xe2\xf9\xa24\xff\xbb>\x03Dx\x00\x90\xcb\x88\x11:\x94e\xc0|c\x87\xf0<\xaf\xd6%\xe4\x8b8\n\xacr!\xd4\xf8\x07",
 	nintendoLogoCrc= 				'V\xcf',
-	headerCrc=						'\x18;'
+	headerCrc=						hdrCrc,
+	secureAreaCrc=					secCrc
 	)
-pprint(dict(srlHeaderPatched._asdict()))
+data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
+filew = open(fname+".hdrnew", "wb")
+filew.write(data1[0:0x15E])
+filew.close()
+file = open(fname+".hdrnew", 'rb')
+#0x15E from https://github.com/devkitPro/ndstool/ ... source/header.cpp
+newhdr = file.read(0x15E)
+file.close
+newHdrCrc=CRC16(modbus_flag=True).calculate(newhdr)
+srlHeaderPatched=srlHeader._replace(headerCrc=newHdrCrc)
+print "new header crc "+hex(newHdrCrc)
+#pprint(dict(srlHeaderPatched._asdict()))
 
 data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
 
