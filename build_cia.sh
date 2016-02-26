@@ -7,7 +7,8 @@ cp bootstrap/bootstrap.nds bootstrap.nds
 #$DEVKITARM/bin/ndstool -c nds-hb-menu.nds -9 hbmenu.elf -h 0x3800 -g $GAME_INFO -b icon.bmp  "$GAME_TITLE;$GAME_SUBTITLE1;$GAME_SUBTITLE2"
 $DEVKITARM/bin/ndstool -c nds-hb-menu.nds -9 hbmenu.elf -g $GAME_INFO -b icon.bmp  "$GAME_TITLE;$GAME_SUBTITLE1;$GAME_SUBTITLE2"
 
-python patch_ndsheader_dsiware.py
+python patch_ndsheader_dsiware.py nds-hb-menu.nds
+#python patch_ndsheader_dsiware.py NDS_Backup_Tool_Wifi.nds
 
 #$DEVKITARM/bin/ndstool
 $DEVKITARM/bin/ndstool -i nds-hb-menu.nds.orig.nds

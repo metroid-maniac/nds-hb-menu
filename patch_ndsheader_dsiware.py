@@ -8,6 +8,13 @@ from collections import OrderedDict
 from pprint import pprint
 import os, sys
 import binascii
+import argparse
+
+
+parser = argparse.ArgumentParser(description='Patch an nds in order to be ready cia conversion via make_cia --srl=.')
+parser.add_argument('file', metavar='file.nds', type=file, help='nds file to patch')
+parser.add_argument('--read', help='print only the header content, do not patch', action="store_true")
+args = parser.parse_args()
 
 #
 # CRC16 MODULE
@@ -75,13 +82,11 @@ def skipUntilAddress(f_in,f_out, caddr, taddr):
 def writeBlankuntilAddress(f_out, caddr, taddr):
 	f_out.write("\x00"*(taddr-caddr))
 
-fname='nds-hb-menu.nds'
-#fname='hbmenu.nds'
-#fname='SUDOKU-Electronic_Arts_Inc..nds'
-#fname='00000000.nds'
-#fname='WoodDumper_DSi_r89.nds'
-#fname='NDS_Backup_Tool_Wifi.nds'
-#fname='bootstrap.nds'
+
+print args.file
+print args.file.name
+fname=args.file.name
+args.file.close()
 
 #offset of 0x4600 created
 
@@ -182,14 +187,14 @@ srlHeaderPatched=srlHeader._replace(
 	nintendoLogo= 					"$\xff\xaeQi\x9a\xa2!=\x84\x82\n\x84\xe4\t\xad\x11$\x8b\x98\xc0\x81\x7f!\xa3R\xbe\x19\x93\t\xce \x10FJJ\xf8'1\xecX\xc7\xe83\x82\xe3\xce\xbf\x85\xf4\xdf\x94\xceK\t\xc1\x94V\x8a\xc0\x13r\xa7\xfc\x9f\x84Ms\xa3\xca\x9aaX\x97\xa3'\xfc\x03\x98v#\x1d\xc7a\x03\x04\xaeV\xbf8\x84\x00@\xa7\x0e\xfd\xffR\xfe\x03o\x950\xf1\x97\xfb\xc0\x85`\xd6\x80%\xa9c\xbe\x03\x01N8\xe2\xf9\xa24\xff\xbb>\x03Dx\x00\x90\xcb\x88\x11:\x94e\xc0|c\x87\xf0<\xaf\xd6%\xe4\x8b8\n\xacr!\xd4\xf8\x07",
 	nintendoLogoCrc= 				'V\xcf',
 	secureAreaCrc=					secCrc,
-	arm9Autoload=					srlHeader.arm9RamAddress+0xA60,
-	arm7Autoload=					srlHeader.arm7RamAddress+0x118,
+	#arm9Autoload=					srlHeader.arm9RamAddress+0xA60,
+	#arm7Autoload=					srlHeader.arm7RamAddress+0x118,
 	)
 data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
 newHdrCrc=CRC16(modbus_flag=True).calculate(data1[0:0x15E])
 srlHeaderPatched=srlHeaderPatched._replace(headerCrc=newHdrCrc)
 print "new header crc "+hex(newHdrCrc)
-#pprint(dict(srlHeaderPatched._asdict()))
+pprint(dict(srlHeaderPatched._asdict()))
 
 
 
@@ -276,7 +281,7 @@ SrlSignedHeader = namedtuple('SrlSignedHeader',
 	"reserved7 "
 	"signature "
 	)
-srlSignedHeaderFormat="<s20s20s20s20s20s20s0x40s20s2636s384s128"
+srlSignedHeaderFormat="<20s20s20s20s20s20s0x40s20s2636s384s128s"
 if srlHeader.headerSize<0x1100:
 	#homebrew
 	srlSignedHeader=SrlSignedHeader._make(unpack_from(srlSignedHeaderFormat, "\x00" * (0x1081-0x300)))
@@ -289,11 +294,10 @@ else:
 
 # Fix srlSignedHeader
 srlSignedHeader=srlSignedHeader._replace(
-	arm7Sha1Hmac=				'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff',
-	arm9iSha1Hmac=				'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00',
-	bannerSha1Hmac=				'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff',
-	digestMasterSha1Hmac=		'\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00',
-	arm9WithSecAreaSha1Hmac=	'\xff'
+	arm7Sha1Hmac=				'\xff'*20,
+	arm9WithSecAreaSha1Hmac=	'\xff'*20,
+	bannerSha1Hmac=				'\xff'*20,
+	signature=					'\xff'*128
 )
 pprint(dict(srlSignedHeader._asdict()))
 
@@ -320,6 +324,8 @@ filew.close()
 filer.close()
 if os.path.exists(fname+".orig.nds"):
 	os.remove(fname+".orig.nds")
-os.rename(fname,fname+".orig.nds")
-#os.remove(fname)
-os.rename(fname+".tmp",fname)
+
+if not args.read:
+	os.rename(fname,fname+".orig.nds")
+	os.rename(fname+".tmp",fname)	
+	print "file patched"
