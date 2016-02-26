@@ -194,7 +194,10 @@ data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
 newHdrCrc=CRC16(modbus_flag=True).calculate(data1[0:0x15E])
 srlHeaderPatched=srlHeaderPatched._replace(headerCrc=newHdrCrc)
 print "new header crc "+hex(newHdrCrc)
-pprint(dict(srlHeaderPatched._asdict()))
+if not args.read:
+	pprint(dict(srlHeaderPatched._asdict()))
+else:
+	pprint(dict(srlHeader._asdict()))
 
 
 
@@ -246,23 +249,25 @@ else:
 
 #pprint(dict(srlTwlExtHeader._asdict()))
 
-# Fix srlTwlExtHeader
-srlTwlExtHeader=srlTwlExtHeader._replace(
-	title_id=			srlHeader.gameCode[::-1]+"\x04\x00\x03\x00",
-	#accessControl=		'\x10\x1C\x00\x00',
-	#arm7ScfgExtMask=	'\x06\x00\x04\x00',
-	#arm7iLoadAddress=	srlHeader.arm7RamAddress,
-	#arm7iRomOffset=		srlHeader.arm7RomOffset,
-	#arm7iSize=			srlHeader.arm7Size,
-	#arm9iLoadAddress=	srlHeader.arm9RamAddress,
-	#arm9iRomOffset=		srlHeader.arm9RomOffset,
-	#arm9iSize=			srlHeader.arm9Size,
-	#twlRomSize=			fsize,
-	configSettings= 	'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff',
-	#pubSaveDataSize=	81920,
-	reserved3=			'@\x08\x00\x00\x00\x00\x01\x00',
-	reserved_flags=		'\x00\x00\x00\x10'
-	)
+if not args.read:
+	# Fix srlTwlExtHeader
+	srlTwlExtHeader=srlTwlExtHeader._replace(
+		title_id=			srlHeader.gameCode[::-1]+"\x04\x00\x03\x00",
+		#accessControl=		'\x10\x1C\x00\x00',
+		#arm7ScfgExtMask=	'\x06\x00\x04\x00',
+		#arm7iLoadAddress=	srlHeader.arm7RamAddress,
+		#arm7iRomOffset=		srlHeader.arm7RomOffset,
+		#arm7iSize=			srlHeader.arm7Size,
+		#arm9iLoadAddress=	srlHeader.arm9RamAddress,
+		#arm9iRomOffset=		srlHeader.arm9RomOffset,
+		#arm9iSize=			srlHeader.arm9Size,
+		#twlRomSize=			fsize,
+		configSettings= 	'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff',
+		#pubSaveDataSize=	81920,
+		reserved3=			'@\x08\x00\x00\x00\x00\x01\x00',
+		reserved_flags=		'\x00\x00\x00\x10'
+		)
+	
 pprint(dict(srlTwlExtHeader._asdict()))
 
 data2=pack(*[srlTwlExtHeaderFormat]+srlTwlExtHeader._asdict().values())
@@ -293,12 +298,13 @@ else:
 #pprint(dict(srlSignedHeader._asdict()))
 
 # Fix srlSignedHeader
-srlSignedHeader=srlSignedHeader._replace(
-	arm7Sha1Hmac=				'\xff'*20,
-	arm9WithSecAreaSha1Hmac=	'\xff'*20,
-	bannerSha1Hmac=				'\xff'*20,
-	signature=					'\xff'*128
-)
+if not args.read:
+	srlSignedHeader=srlSignedHeader._replace(
+		arm7Sha1Hmac=				'\xff'*20,
+		arm9WithSecAreaSha1Hmac=	'\xff'*20,
+		bannerSha1Hmac=				'\xff'*20,
+		signature=					'\xff'*128
+	)
 pprint(dict(srlSignedHeader._asdict()))
 
 data3=pack(*[srlSignedHeaderFormat]+srlSignedHeader._asdict().values())
