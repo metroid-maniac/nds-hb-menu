@@ -9,6 +9,16 @@ $DEVKITARM/bin/ndstool -c nds-hb-menu.nds -9 hbmenu.elf -g $GAME_INFO -b icon.bm
 
 python patch_ndsheader_dsiware.py
 
+#$DEVKITARM/bin/ndstool
+$DEVKITARM/bin/ndstool -i nds-hb-menu.nds.orig.nds
 $DEVKITARM/bin/ndstool -i nds-hb-menu.nds
+#cp nds-hb-menu.nds nds-hb-menu.nds.crypt
+#$DEVKITARM/bin/ndstool -sE nds-hb-menu.nds.crypt
+$DEVKITARM/bin/ndstool -i nds-hb-menu.nds
+
+
+$DEVKITARM/bin/ndstool -i WoodDumper_DSi_r89.nds
+$DEVKITARM/bin/ndstool -i NDS_Backup_Tool_Wifi.nds
+$DEVKITARM/bin/ndstool -i 00000000.nds
 
 ./make_cia.exe --srl=nds-hb-menu.nds
