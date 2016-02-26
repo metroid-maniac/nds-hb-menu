@@ -155,9 +155,9 @@ print "origin header crc "+hex(srlHeader.headerCrc)
 print "origin secure crc "+hex(srlHeader.secureAreaCrc)
 
 #SecureArea CRC compute "CRC-16 (Modbus)"
-file = open(fname, 'rb')
+file = open("WoodDumper_DSi_r89.nds", 'rb')
 #0x15E from https://github.com/devkitPro/ndstool/ ... source/header.cpp
-file.read(0x200)
+file.read(0x4000)
 sec = file.read(0x4000)
 secCrc=CRC16(modbus_flag=True).calculate(sec)
 print("{:10s} {:20X}".format('SEC CRC-16 ModBus', secCrc))
@@ -166,23 +166,21 @@ filew = open(fname+".sec", "wb")
 filew.write(sec);
 filew.close()
 file.close()
-srlHeaderPatched=srlHeaderPatched._replace(secureAreaCrc=secCrc)
 
 # Fix srlHeader
 srlHeaderPatched=srlHeader._replace(
 	secureCardControlRegSettings=	1575160,
 	normalCardControlRegSettings=	5791744,
 	internalFlag=					'\x00',
-	arm9RomOffset=					srlHeader.arm9RomOffset+0x3E80,
-	arm7RomOffset=					srlHeader.arm7RomOffset+0x3E80,
-	fatOffset=						srlHeader.fatOffset+0x3E80,
-	fntOffset=						srlHeader.fntOffset+0x3E80,
-	icon_bannerOffset=				srlHeader.icon_bannerOffset+0x3E80,						
-	ntrRomSize=						srlHeader.ntrRomSize+0x3E80,	
+	arm9RomOffset=					srlHeader.arm9RomOffset+0x3E00,
+	arm7RomOffset=					srlHeader.arm7RomOffset+0x3E00,
+	fatOffset=						srlHeader.fatOffset+0x3E00,
+	fntOffset=						srlHeader.fntOffset+0x3E00,
+	icon_bannerOffset=				srlHeader.icon_bannerOffset+0x3E00,						
+	ntrRomSize=						srlHeader.ntrRomSize+0x3E00,	
 	headerSize=						0x4000,
 	nintendoLogo= 					"$\xff\xaeQi\x9a\xa2!=\x84\x82\n\x84\xe4\t\xad\x11$\x8b\x98\xc0\x81\x7f!\xa3R\xbe\x19\x93\t\xce \x10FJJ\xf8'1\xecX\xc7\xe83\x82\xe3\xce\xbf\x85\xf4\xdf\x94\xceK\t\xc1\x94V\x8a\xc0\x13r\xa7\xfc\x9f\x84Ms\xa3\xca\x9aaX\x97\xa3'\xfc\x03\x98v#\x1d\xc7a\x03\x04\xaeV\xbf8\x84\x00@\xa7\x0e\xfd\xffR\xfe\x03o\x950\xf1\x97\xfb\xc0\x85`\xd6\x80%\xa9c\xbe\x03\x01N8\xe2\xf9\xa24\xff\xbb>\x03Dx\x00\x90\xcb\x88\x11:\x94e\xc0|c\x87\xf0<\xaf\xd6%\xe4\x8b8\n\xacr!\xd4\xf8\x07",
-	nintendoLogoCrc= 				'V\xcf',
-	secureAreaCrc=secCrc
+	nintendoLogoCrc= 				'V\xcf'
 	)
 data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
 newHdrCrc=CRC16(modbus_flag=True).calculate(data1[0:0x15E])
@@ -303,23 +301,15 @@ filew = open(fname+".tmp", "wb")
 filew.write(data1)
 filew.write(data2)
 filew.write(data3[0:0xC80])
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff')
-writeBlankuntilAddress(filew,0x1000,0x4000);
+filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+writeBlankuntilAddress(filew,0x1080,0x4000);
 
 skipUntilAddress(filer,filew,caddr,fsize);
 
