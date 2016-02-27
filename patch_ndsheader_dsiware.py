@@ -1,5 +1,6 @@
 # -*- coding: utf8 -*-
 # inspired by https://github.com/Relys/Project_CTR/blob/master/makerom/srl.h
+# and https://dsibrew.org/wiki/DSi_Cartridge_Header
 # if the header size of the input nds file is 0x200 (homebrew)
 # 	the header size of the output nds file will be patched to 0x4000 (normal ds/dsi header), 0x3E00 offset
 from struct import *
@@ -112,6 +113,7 @@ filer = open(fname, 'rb')
 data = filer.read(0x180)
 caddr=0x180
 
+#DS Data 180 bytes
 SrlHeader = namedtuple('SrlHeader', 
 	"gameTitle "
 	"gameCode "
@@ -203,9 +205,13 @@ else:
 
 data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
 
-#TWL Only Data
+#TWL Only Data 384 bytes
 SrlTwlExtHeader = namedtuple('SrlTwlExtHeader', 
-	"configSettings "
+	"MBK_1_5_Settings "
+	"MBK_6_8_Settings_ARM9 "
+	"MBK_6_8_Settings_ARM7 "
+	"global_MBK_9_Setting "
+	"regionFlags "
 	"accessControl "
 	"arm7ScfgExtMask "
 	"reserved_flags "
@@ -227,9 +233,10 @@ SrlTwlExtHeader = namedtuple('SrlTwlExtHeader',
 	"digest_blockHashtableSize "
 	"digestSectorSize "
 	"digest_blockSectorcount "
-	"reserved3 "
+	"iconSize "	#usually 0x23C0
+	"unknown1 "
 	"twlRomSize "
-	"unknown "
+	"unknown2 "
 	"modcryptArea1Offset "
 	"modcryptArea1Size "
 	"modcryptArea2Offset "
@@ -237,8 +244,9 @@ SrlTwlExtHeader = namedtuple('SrlTwlExtHeader',
 	"title_id "
 	"pubSaveDataSize "
 	"privSaveDataSize "
-	"reserved4")
-srlTwlExtHeaderFormat="<52s4s4s4sI4sIIIIIIIIIIIIIIII8sQ8sIIII8sII192s"
+	"reserved4 "
+	"unknown3 ")
+srlTwlExtHeaderFormat="<20s12s12s4s4s4s4s4sI4sIIIIIIIIIIIIIIIII4sI12sIIII8sII176s16s"
 if srlHeader.headerSize<0x300:
 	#homebrew
 	srlTwlExtHeader=SrlTwlExtHeader._make(unpack_from(srlTwlExtHeaderFormat, "\x00" * (0x300-0x180)))
@@ -253,18 +261,9 @@ if not args.read:
 	# Fix srlTwlExtHeader
 	srlTwlExtHeader=srlTwlExtHeader._replace(
 		title_id=			srlHeader.gameCode[::-1]+"\x04\x00\x03\x00",
-		#accessControl=		'\x10\x1C\x00\x00',
-		#arm7ScfgExtMask=	'\x06\x00\x04\x00',
-		#arm7iLoadAddress=	srlHeader.arm7RamAddress,
-		#arm7iRomOffset=		srlHeader.arm7RomOffset,
-		#arm7iSize=			srlHeader.arm7Size,
-		#arm9iLoadAddress=	srlHeader.arm9RamAddress,
-		#arm9iRomOffset=		srlHeader.arm9RomOffset,
-		#arm9iSize=			srlHeader.arm9Size,
-		#twlRomSize=			fsize,
-		configSettings= 	'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff\xff\xff',
-		#pubSaveDataSize=	81920,
-		reserved3=			'@\x08\x00\x00\x00\x00\x01\x00',
+		regionFlags=		'\xff\xff\xff\xff',
+		iconSize=			2112,
+		unknown1=			'\x00\x00\x10\x00',
 		reserved_flags=		'\x00\x00\x00\x10'
 		)
 	
@@ -272,7 +271,7 @@ pprint(dict(srlTwlExtHeader._asdict()))
 
 data2=pack(*[srlTwlExtHeaderFormat]+srlTwlExtHeader._asdict().values())
 
-#TWL and Signed NTR
+#TWL and Signed NTR 3328 bytes
 SrlSignedHeader = namedtuple('SrlSignedHeader', 
 	"arm9WithSecAreaSha1Hmac "
 	"arm7Sha1Hmac "
@@ -286,12 +285,12 @@ SrlSignedHeader = namedtuple('SrlSignedHeader',
 	"reserved7 "
 	"signature "
 	)
-srlSignedHeaderFormat="<20s20s20s20s20s20s0x40s20s2636s384s128s"
+srlSignedHeaderFormat="<20s20s20s20s20s20s40s20s2636s384s128s"
 if srlHeader.headerSize<0x1100:
 	#homebrew
-	srlSignedHeader=SrlSignedHeader._make(unpack_from(srlSignedHeaderFormat, "\x00" * (0x1081-0x300)))
+	srlSignedHeader=SrlSignedHeader._make(unpack_from(srlSignedHeaderFormat, "\x00" * (3328)))
 else:
-	data = filer.read(0x1081-0x300)
+	data = filer.read(3328)
 	srlSignedHeader=SrlSignedHeader._make(unpack_from(srlSignedHeaderFormat, data))
 	caddr=0x1081
 
