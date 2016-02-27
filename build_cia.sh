@@ -17,9 +17,19 @@ $DEVKITARM/bin/ndstool -i nds-hb-menu.nds
 #$DEVKITARM/bin/ndstool -sE nds-hb-menu.nds.crypt
 $DEVKITARM/bin/ndstool -i nds-hb-menu.nds
 
+python patch_ndsheader_dsiware.py wooddumper.nds --out wooddumper_patched.nds --title WOODDUMPER --code AMCE --maker 01
 
+echo "wooddumper.nds"
+$DEVKITARM/bin/ndstool -i wooddumper.nds
+echo "wooddumper_patched.nds"
+$DEVKITARM/bin/ndstool -i wooddumper_patched.nds
+echo "WoodDumper_DSi_r89.nds"
 $DEVKITARM/bin/ndstool -i WoodDumper_DSi_r89.nds
-$DEVKITARM/bin/ndstool -i NDS_Backup_Tool_Wifi.nds
-$DEVKITARM/bin/ndstool -i 00000000.nds
+#$DEVKITARM/bin/ndstool -i NDS_Backup_Tool_Wifi.nds
+#$DEVKITARM/bin/ndstool -i 00000000.nds
 
-./make_cia.exe --srl=nds-hb-menu.nds
+python patch_ndsheader_dsiware.py --read WoodDumper_DSi_r89.nds
+
+./twltool.exe modcrypt --in nds-hb-menu.nds --out nds-hb-menu_modcrypt.nds
+
+./make_cia.exe --srl=nds-hb-menu_modcrypt.nds

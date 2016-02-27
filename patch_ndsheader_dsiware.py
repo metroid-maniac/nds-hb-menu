@@ -14,6 +14,10 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Patch an nds in order to be ready cia conversion via make_cia --srl=.')
 parser.add_argument('file', metavar='file.nds', type=file, help='nds file to patch')
+parser.add_argument('--out', help='output file [optionnal]')
+parser.add_argument('--title', help='Game title')
+parser.add_argument('--code', help='Game code')
+parser.add_argument('--maker', help='Maker code')
 parser.add_argument('--read', help='print only the header content, do not patch', action="store_true")
 args = parser.parse_args()
 
@@ -83,9 +87,6 @@ def skipUntilAddress(f_in,f_out, caddr, taddr):
 def writeBlankuntilAddress(f_out, caddr, taddr):
 	f_out.write("\x00"*(taddr-caddr))
 
-
-print args.file
-print args.file.name
 fname=args.file.name
 args.file.close()
 
@@ -103,9 +104,9 @@ hdr = file.read(0x15E)
 hdrCrc=CRC16(modbus_flag=True).calculate(hdr)
 print("{:10s} {:20X}".format('HDR CRC-16 ModBus', hdrCrc))
 #print "origin header cr c"+hdr[0x15E:0x15F]
-filew = open(fname+".hdr", "wb")
-filew.write(hdr);
-filew.close()
+#filew = open(fname+".hdr", "wb")
+#filew.write(hdr);
+#filew.close()
 file.close()
 
 
@@ -169,9 +170,9 @@ sec = file.read(0x4000)
 secCrc=CRC16(modbus_flag=True).calculate(sec)
 print("{:10s} {:20X}".format('SEC CRC-16 ModBus', secCrc))
 #print "origin header cr c"+hdr[0x15E:0x15F]
-filew = open(fname+".sec", "wb")
-filew.write(sec);
-filew.close()
+#filew = open(fname+".sec", "wb")
+#filew.write(sec);
+#filew.close()
 file.close()
 
 # Fix srlHeader
@@ -181,20 +182,36 @@ srlHeaderPatched=srlHeader._replace(
 	internalFlag=					'\x00',
 	arm9RomOffset=					srlHeader.arm9RomOffset+0x3E00,
 	arm7RomOffset=					srlHeader.arm7RomOffset+0x3E00,
-	fatOffset=						srlHeader.fatOffset+0x3E00,
-	fntOffset=						srlHeader.fntOffset+0x3E00,
-	icon_bannerOffset=				srlHeader.icon_bannerOffset+0x3E00,						
-	ntrRomSize=						srlHeader.ntrRomSize+0x3E00,	
+	fntOffset=						srlHeader.fntOffset+0x4640,
+	fatOffset=						srlHeader.fatOffset+0x444C,
+	icon_bannerOffset=				srlHeader.icon_bannerOffset+0x3C00,						
+	ntrRomSize=						srlHeader.ntrRomSize+0x3C09,	
 	headerSize=						0x4000,
 	nintendoLogo= 					"$\xff\xaeQi\x9a\xa2!=\x84\x82\n\x84\xe4\t\xad\x11$\x8b\x98\xc0\x81\x7f!\xa3R\xbe\x19\x93\t\xce \x10FJJ\xf8'1\xecX\xc7\xe83\x82\xe3\xce\xbf\x85\xf4\xdf\x94\xceK\t\xc1\x94V\x8a\xc0\x13r\xa7\xfc\x9f\x84Ms\xa3\xca\x9aaX\x97\xa3'\xfc\x03\x98v#\x1d\xc7a\x03\x04\xaeV\xbf8\x84\x00@\xa7\x0e\xfd\xffR\xfe\x03o\x950\xf1\x97\xfb\xc0\x85`\xd6\x80%\xa9c\xbe\x03\x01N8\xe2\xf9\xa24\xff\xbb>\x03Dx\x00\x90\xcb\x88\x11:\x94e\xc0|c\x87\xf0<\xaf\xd6%\xe4\x8b8\n\xacr!\xd4\xf8\x07",
 	nintendoLogoCrc= 				'V\xcf',
 	secureAreaCrc=					secCrc,
-	#arm9Autoload=					srlHeader.arm9RamAddress+0xA60,
-	#arm7Autoload=					srlHeader.arm7RamAddress+0x118,
+	reserved1=						'\x00'*156,
+	arm7EntryAddress=				0x2380000,
+	arm7RamAddress=					0x2380000,	
+	arm7Autoload=					0x2380118,
+	arm9EntryAddress=				0x2000000,
+	arm9RamAddress=					0x2000000,
+	arm9Autoload=					0x2000A60,
 	)
+
+if args.title is not None:
+	srlHeaderPatched=srlHeaderPatched._replace(gameTitle=args.title)
+if args.code is not None:
+	srlHeaderPatched=srlHeaderPatched._replace(gameCode=args.code)
+if args.maker is not None:
+	srlHeaderPatched=srlHeaderPatched._replace(makerCode=args.maker)
+	
 data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
 newHdrCrc=CRC16(modbus_flag=True).calculate(data1[0:0x15E])
 srlHeaderPatched=srlHeaderPatched._replace(headerCrc=newHdrCrc)
+
+
+
 print "new header crc "+hex(newHdrCrc)
 if not args.read:
 	pprint(dict(srlHeaderPatched._asdict()))
@@ -260,10 +277,10 @@ else:
 if not args.read:
 	# Fix srlTwlExtHeader
 	srlTwlExtHeader=srlTwlExtHeader._replace(
-		title_id=			srlHeader.gameCode[::-1]+"\x04\x00\x03\x00",
+		title_id=			srlHeaderPatched.gameCode[::-1]+"\x04\x00\x03\x00",
 		regionFlags=		'\xff\xff\xff\xff',
 		iconSize=			2112,
-		unknown1=			'\x00\x00\x10\x00',
+		unknown1=			'\x00\x00\x01\x00',
 		reserved_flags=		'\x00\x00\x00\x10'
 		)
 	
@@ -308,29 +325,72 @@ pprint(dict(srlSignedHeader._asdict()))
 
 data3=pack(*[srlSignedHeaderFormat]+srlSignedHeader._asdict().values())
 
-# write the file
-filew = open(fname+".tmp", "wb")
-filew.write(data1)
-filew.write(data2)
-filew.write(data3[0:0xC80])
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-writeBlankuntilAddress(filew,0x1080,0x4000);
-
-skipUntilAddress(filer,filew,caddr,fsize);
-
-filew.close()
-filer.close()
-if os.path.exists(fname+".orig.nds"):
-	os.remove(fname+".orig.nds")
+# ARM9 footer 
+# from https://github.com/devkitPro/ndstool/ ... source/header.cpp
+# ARM9 footer size = 3*4
+ARM9Footer = namedtuple('ARM9Footer', 
+	"nitrocode " #0xDEC00621
+	"versionInfo "
+	"reserved "
+	)
+ARM9FooterFormat="<III"
+file = open(fname, 'rb')
+arm9FooterAddr=srlHeader.arm9RomOffset + srlHeader.arm9Size
+file.read(arm9FooterAddr)
+data=file.read(12)
+arm9Footer=ARM9Footer._make(unpack_from(ARM9FooterFormat, data))
+print "footer addr "+hex(arm9FooterAddr)
+if arm9Footer.nitrocode == 0xDEC00621:
+	print "ARM9 footer found."
+	print "no patch needed"
+	print "nitrocode "+hex(arm9Footer.nitrocode)
+	print "versionInfo "+hex(arm9Footer.versionInfo)
+	print "reserved "+hex(arm9Footer.reserved)
+	print "\n"
+else:
+	print "ARM9 footer not found.\n"
+	arm9FooterPatched=arm9Footer._replace(
+		nitrocode=		0xDEC00621,
+		versionInfo=	0xad8,
+		reserved=		0
+	)
+	data4=pack(*[ARM9FooterFormat]+arm9FooterPatched._asdict().values())
+file.close()
 
 if not args.read:
-	os.rename(fname,fname+".orig.nds")
-	os.rename(fname+".tmp",fname)	
+	# write the file
+	if args.out is not None:
+		filew = open(args.out, "wb")
+	else:
+		filew = open(fname+".tmp", "wb")
+
+	filew.write(data1)
+	filew.write(data2)
+	filew.write(data3[0:0xC80])
+	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+	writeBlankuntilAddress(filew,0x1080,0x4000);
+	
+	if arm9Footer.nitrocode == 0xDEC00621:
+		skipUntilAddress(filer,filew,caddr,fsize);
+	else:
+		# patch ARM9 footer 
+		skipUntilAddress(filer,filew,caddr,arm9FooterAddr);
+		filew.write(data4)
+		skipUntilAddress(filer,filew,arm9FooterAddr+12,fsize);
+
+	filew.close()
+	filer.close()
+	
+	if args.out is None:
+		if os.path.exists(fname+".orig.nds"):
+			os.remove(fname+".orig.nds")
+		os.rename(fname,fname+".orig.nds")
+		os.rename(fname+".tmp",fname)	
 	print "file patched"
