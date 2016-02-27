@@ -233,7 +233,7 @@ SrlTwlExtHeader = namedtuple('SrlTwlExtHeader',
 	"digest_blockHashtableSize "
 	"digestSectorSize "
 	"digest_blockSectorcount "
-	"iconSize "	#usually 0x23C0
+	"iconSize "	#usually 0x23C0 or 2112 in homebrew
 	"unknown1 "
 	"twlRomSize "
 	"unknown2 "
