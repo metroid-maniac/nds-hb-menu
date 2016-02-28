@@ -184,8 +184,8 @@ srlHeaderPatched=srlHeader._replace(
 	arm7RomOffset=					srlHeader.arm7RomOffset+0x3E00,
 	fntOffset=						srlHeader.fntOffset+0x4640,
 	fatOffset=						srlHeader.fatOffset+0x444C,
-	icon_bannerOffset=				srlHeader.icon_bannerOffset+0x3C00,						
-	ntrRomSize=						srlHeader.ntrRomSize+0x3C09,	
+	icon_bannerOffset=				srlHeader.icon_bannerOffset+0x3E00-0x200,						
+	ntrRomSize=						srlHeader.ntrRomSize+0x3E00-0x200,		
 	headerSize=						0x4000,
 	nintendoLogo= 					"$\xff\xaeQi\x9a\xa2!=\x84\x82\n\x84\xe4\t\xad\x11$\x8b\x98\xc0\x81\x7f!\xa3R\xbe\x19\x93\t\xce \x10FJJ\xf8'1\xecX\xc7\xe83\x82\xe3\xce\xbf\x85\xf4\xdf\x94\xceK\t\xc1\x94V\x8a\xc0\x13r\xa7\xfc\x9f\x84Ms\xa3\xca\x9aaX\x97\xa3'\xfc\x03\x98v#\x1d\xc7a\x03\x04\xaeV\xbf8\x84\x00@\xa7\x0e\xfd\xffR\xfe\x03o\x950\xf1\x97\xfb\xc0\x85`\xd6\x80%\xa9c\xbe\x03\x01N8\xe2\xf9\xa24\xff\xbb>\x03Dx\x00\x90\xcb\x88\x11:\x94e\xc0|c\x87\xf0<\xaf\xd6%\xe4\x8b8\n\xacr!\xd4\xf8\x07",
 	nintendoLogoCrc= 				'V\xcf',
@@ -309,7 +309,7 @@ if srlHeader.headerSize<0x1100:
 else:
 	data = filer.read(3328)
 	srlSignedHeader=SrlSignedHeader._make(unpack_from(srlSignedHeaderFormat, data))
-	caddr=0x1081
+	caddr=0x300+3328
 
 #pprint(dict(srlSignedHeader._asdict()))
 
@@ -367,24 +367,21 @@ if not args.read:
 	filew.write(data1)
 	filew.write(data2)
 	filew.write(data3[0:0xC80])
-	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
-	filew.write('\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff')
+	filew.write('\xff'*16*8)
 	writeBlankuntilAddress(filew,0x1080,0x4000);
 	
 	if arm9Footer.nitrocode == 0xDEC00621:
-		skipUntilAddress(filer,filew,caddr,fsize);
+		skipUntilAddress(filer,filew,caddr,srlHeaderPatched.icon_bannerOffset-0x200);
 	else:
 		# patch ARM9 footer 
 		skipUntilAddress(filer,filew,caddr,arm9FooterAddr);
 		filew.write(data4)
-		skipUntilAddress(filer,filew,arm9FooterAddr+12,fsize);
+		filer.read(12)
+		skipUntilAddress(filer,filew,arm9FooterAddr+12,srlHeader.icon_bannerOffset-0x200);
 
+	filer.read(0x200)
+	skipUntilAddress(filer,filew,srlHeader.icon_bannerOffset,fsize);
+	
 	filew.close()
 	filer.close()
 	
