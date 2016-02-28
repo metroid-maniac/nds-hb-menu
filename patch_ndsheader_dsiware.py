@@ -310,22 +310,32 @@ if not args.read:
 		reserved_flags=		'\x00\x00\x00\x10'
 		)
 	if args.mode == "dsi":
+		arm7iRomOffset=srlHeaderPatched.arm7RomOffset
+		arm9iRomOffset=srlHeaderPatched.arm9RomOffset	
+		arm7isize=srlHeaderPatched.arm7Size
+		arm9isize=srlHeaderPatched.arm9Size
+		totaldsisize=0
+		arm7iname = None
+		arm9iname = None
+		
 		if args.arm9i is not None:
 			arm9iname = args.arm9i.name
 			arm9isize = getSize(args.arm9i)
+			arm9iRomOffset=srlHeaderPatched.ntrRomSize
 			print "arm9isize : "+hex(arm9isize)
 			print "arm9ioffset : "+hex(srlHeaderPatched.ntrRomSize)
 			args.arm9i.close()
-		
+			totaldsisize=arm9isize
+			
 		if args.arm7i is not None:
 			arm7iname = args.arm7i.name
 			arm7isize = getSize(args.arm7i)
+			arm7iRomOffset=srlHeaderPatched.ntrRomSize+arm9isize
 			print "arm7isize : "+hex(arm7isize)
 			print "arm9ioffset : "+hex(srlHeaderPatched.ntrRomSize+arm9isize)
 			args.arm7i.close()
-		
-		totaldsisize=arm9isize+arm7isize
-		
+			totaldsisize=arm9isize+arm7isize
+			
 		srlTwlExtHeader=srlTwlExtHeader._replace(
 			MBK_1_5_Settings= 		'\x81\x85\x89\x8d\x80\x84\x88\x8c\x90\x94\x98\x9c\x80\x84\x88\x8c\x90\x94\x98\x9c',
 			MBK_6_8_Settings_ARM7= 	'\xc07\x00\x08@7\xc0\x07\x007@\x07',
@@ -333,10 +343,10 @@ if not args.read:
 			accessControl= 			'0\xf9\x01\x00',
 			arm7ScfgExtMask= 		'\x06\x00\x04\x00',
 			arm7iLoadAddress= 		0x2E80000,
-			arm7iRomOffset= 		srlHeaderPatched.ntrRomSize+arm9isize,
+			arm7iRomOffset= 		arm7iRomOffset,
 			arm7iSize= 				arm7isize,
 			arm9iLoadAddress= 		0x2400000,
-			arm9iRomOffset= 		srlHeaderPatched.ntrRomSize,
+			arm9iRomOffset= 		arm9iRomOffset,
 			arm9iSize= 				arm9isize,			
 			global_MBK_9_Setting= 	'\x0f\x00\x00\x03',	
 			iconSize=				2112,		
@@ -460,19 +470,20 @@ if not args.read:
 	skipUntilAddress(filer,filew,srlHeader.icon_bannerOffset,fsize)
 	
 	
-	# add dsi specific data
-	# dixit apache : Digest Table offset first, then sector table, then Arm9i, then arm7i.
-	# digest block/sector table are not needed for homebrew
-	# Not needed for homebrew so far
-	if arm9isize != 0 :
-		arm9ifile = open(arm9iname, "rb")
-		skipUntilAddress(arm9ifile,filew,0,arm9isize)
-		arm9ifile.close()
-		
-	if arm7isize != 0 :		
-		arm7ifile = open(arm7iname, "rb")
-		skipUntilAddress(arm7ifile,filew,0,arm7isize)
-		arm7ifile.close()
+	if args.mode == "dsi":
+		# add dsi specific data
+		# dixit apache : Digest Table offset first, then sector table, then Arm9i, then arm7i.
+		# digest block/sector table are not needed for homebrew
+		# Not needed for homebrew so far
+		if arm9iname is not None :
+			arm9ifile = open(arm9iname, "rb")
+			skipUntilAddress(arm9ifile,filew,0,arm9isize)
+			arm9ifile.close()
+			
+		if arm7iname is not None :
+			arm7ifile = open(arm7iname, "rb")
+			skipUntilAddress(arm7ifile,filew,0,arm7isize)
+			arm7ifile.close()
 		
 	filew.close()
 	filer.close()
