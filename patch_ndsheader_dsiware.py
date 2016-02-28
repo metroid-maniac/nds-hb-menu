@@ -1,10 +1,15 @@
 # -*- coding: utf8 -*-
+# Patch an .nds (works with homebrew and ds demo only) to make it ready for make_cia
+#
+# 2016-02-28, Ahezard 
+#
 # inspired by 
-# apache thunder nds edited files and comments
+# Apache Thunder .nds edited files and comments
 # https://github.com/Relys/Project_CTR/blob/master/makerom/srl.h
 # https://dsibrew.org/wiki/DSi_Cartridge_Header
 # if the header size of the input nds file is 0x200 (homebrew)
-# 	the header size of the output nds file will be patched to 0x4000 (normal ds/dsi header), 0x3E00 offset
+# the header size of the output nds file will be patched to 0x4000 (normal ds/dsi header), 0x3E00 offset
+
 from struct import *
 from collections import namedtuple
 from collections import OrderedDict
@@ -18,14 +23,16 @@ parser = argparse.ArgumentParser(description='Patch an nds in order to be ready 
 parser.add_argument('file', metavar='file.nds', type=file, help='nds file to patch')
 parser.add_argument('--out', help='output file [optionnal]')
 parser.add_argument('--read', help='print only the header content, do not patch', action="store_true")
+parser.add_argument('--extract', help='extract the content of the rom : header.bin,arm9.bin,arm7.bin,icon.bin,arm9i.bin,arm7i.bin, do not patch', action="store_true")
 parser.add_argument('--title', help='Game title')
 parser.add_argument('--code', help='Game code')
 parser.add_argument('--maker', help='Maker code')
 parser.add_argument('--mode', help='target mode, default mode is ds [ds|dsdsi|dsi]')
-parser.add_argument('--arm9i', type=file, help='dsi arm9i binary')
-parser.add_argument('--arm7i', type=file, help='dsi arm7i binary')
-parser.add_argument('--digest-block', type=file, help='dsi digest block table')
-parser.add_argument('--digest-sector', type=file, help='dsi digest sector table')
+parser.add_argument('--arm7', type=file, help='swap the ds arm7 binary by the one provided') #Not yet implemented
+parser.add_argument('--arm9i', type=file, help='add a dsi arm9i binary to the file, not needed for homebrew so far')
+parser.add_argument('--arm7i', type=file, help='add a dsi arm7i binary to the file, not needed for homebrew so far')
+parser.add_argument('--digest-block', type=file, help='dsi digest block table')	#Not yet implemented
+parser.add_argument('--digest-sector', type=file, help='dsi digest sector table')	#Not yet implemented
 args = parser.parse_args()
 
 #
@@ -201,19 +208,22 @@ srlHeaderPatched=srlHeader._replace(
 	nintendoLogoCrc= 				'V\xcf',
 	secureAreaCrc=					secCrc,
 	reserved1=						'\x00'*156,
-	arm7EntryAddress=				0x2380000,
-	arm7RamAddress=					0x2380000,	
-	arm7Autoload=					0x2380118,
-	arm9EntryAddress=				0x2000000,
-	arm9RamAddress=					0x2000000,
-	arm9Autoload=					0x2000A60,
+	# better to recompile/swap the arm7 binary if this is needed
+	#arm7EntryAddress=				0x2380000,
+	#arm7RamAddress=					0x2380000,	
+	#arm7Autoload=					0x2380118,
+	#arm9EntryAddress=				0x2000000,
+	#arm9RamAddress=					0x2000000,
+	#arm9Autoload=					0x2000A60,
 	)
 
 if args.mode == "dsi":
 	srlHeaderPatched=srlHeaderPatched._replace(
 		deviceCapacity=				srlHeaderPatched.deviceCapacity+2,
 		dsiflags=					'\x01\x00', #disable modcrypt but enable twl
-		unitCode=					'\x03'
+		unitCode=					'\x03',
+		#arm7Autoload=				0,
+		#arm9Autoload=				0,
 		)
 
 if args.title is not None:
@@ -234,6 +244,9 @@ else:
 	pprint(dict(srlHeader._asdict()))
 
 data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
+
+arm9isize=0
+arm7isize=0
 
 #TWL Only Data 384 bytes
 SrlTwlExtHeader = namedtuple('SrlTwlExtHeader', 
@@ -297,21 +310,27 @@ if not args.read:
 		reserved_flags=		'\x00\x00\x00\x10'
 		)
 	if args.mode == "dsi":
-		arm9iname = args.arm9i.name
-		arm9isize = getSize(args.arm9i)
-		print "arm9isize : "+hex(arm9isize)
-		args.arm9i.close()
-		arm7iname = args.arm7i.name
-		arm7isize = getSize(args.arm7i)
-		print "arm7isize : "+hex(arm7isize)
-		args.arm7i.close()
+		if args.arm9i is not None:
+			arm9iname = args.arm9i.name
+			arm9isize = getSize(args.arm9i)
+			print "arm9isize : "+hex(arm9isize)
+			print "arm9ioffset : "+hex(srlHeaderPatched.ntrRomSize)
+			args.arm9i.close()
+		
+		if args.arm7i is not None:
+			arm7iname = args.arm7i.name
+			arm7isize = getSize(args.arm7i)
+			print "arm7isize : "+hex(arm7isize)
+			print "arm9ioffset : "+hex(srlHeaderPatched.ntrRomSize+arm9isize)
+			args.arm7i.close()
+		
 		totaldsisize=arm9isize+arm7isize
 		
 		srlTwlExtHeader=srlTwlExtHeader._replace(
 			MBK_1_5_Settings= 		'\x81\x85\x89\x8d\x80\x84\x88\x8c\x90\x94\x98\x9c\x80\x84\x88\x8c\x90\x94\x98\x9c',
 			MBK_6_8_Settings_ARM7= 	'\xc07\x00\x08@7\xc0\x07\x007@\x07',
 			MBK_6_8_Settings_ARM9= 	'\x00\x00\x00\x00@7\xc0\x07\x007@\x07',
-			accessControl= 			'\x10\x00\x00\x00',
+			accessControl= 			'0\xf9\x01\x00',
 			arm7ScfgExtMask= 		'\x06\x00\x04\x00',
 			arm7iLoadAddress= 		0x2E80000,
 			arm7iRomOffset= 		srlHeaderPatched.ntrRomSize+arm9isize,
@@ -440,15 +459,17 @@ if not args.read:
 	filer.read(0x200)
 	skipUntilAddress(filer,filew,srlHeader.icon_bannerOffset,fsize)
 	
-	if args.mode == "dsi":
-		# add dsi specific data
-		# dixit apache : Digest Table offset first, then sector table, then Arm9i, then arm7i.
-		# digest block/sector table are not needed for homebrew
-		
+	
+	# add dsi specific data
+	# dixit apache : Digest Table offset first, then sector table, then Arm9i, then arm7i.
+	# digest block/sector table are not needed for homebrew
+	# Not needed for homebrew so far
+	if arm9isize != 0 :
 		arm9ifile = open(arm9iname, "rb")
 		skipUntilAddress(arm9ifile,filew,0,arm9isize)
 		arm9ifile.close()
 		
+	if arm7isize != 0 :		
 		arm7ifile = open(arm7iname, "rb")
 		skipUntilAddress(arm7ifile,filew,0,arm7isize)
 		arm7ifile.close()
