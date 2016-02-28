@@ -1,6 +1,8 @@
 # -*- coding: utf8 -*-
-# inspired by https://github.com/Relys/Project_CTR/blob/master/makerom/srl.h
-# and https://dsibrew.org/wiki/DSi_Cartridge_Header
+# inspired by 
+# apache thunder nds edited files and comments
+# https://github.com/Relys/Project_CTR/blob/master/makerom/srl.h
+# https://dsibrew.org/wiki/DSi_Cartridge_Header
 # if the header size of the input nds file is 0x200 (homebrew)
 # 	the header size of the output nds file will be patched to 0x4000 (normal ds/dsi header), 0x3E00 offset
 from struct import *
@@ -15,10 +17,15 @@ import argparse
 parser = argparse.ArgumentParser(description='Patch an nds in order to be ready cia conversion via make_cia --srl=.')
 parser.add_argument('file', metavar='file.nds', type=file, help='nds file to patch')
 parser.add_argument('--out', help='output file [optionnal]')
+parser.add_argument('--read', help='print only the header content, do not patch', action="store_true")
 parser.add_argument('--title', help='Game title')
 parser.add_argument('--code', help='Game code')
 parser.add_argument('--maker', help='Maker code')
-parser.add_argument('--read', help='print only the header content, do not patch', action="store_true")
+parser.add_argument('--mode', help='target mode, default mode is ds [ds|dsdsi|dsi]')
+parser.add_argument('--arm9i', type=file, help='dsi arm9i binary')
+parser.add_argument('--arm7i', type=file, help='dsi arm7i binary')
+parser.add_argument('--digest-block', type=file, help='dsi digest block table')
+parser.add_argument('--digest-sector', type=file, help='dsi digest sector table')
 args = parser.parse_args()
 
 #
@@ -76,14 +83,16 @@ class CRC16(object):
             self.crc16_tab.append(crc)
 
 def getSize(fileobject):
-    fileobject.seek(0,2) # move the cursor to the end of the file
-    size = fileobject.tell()
-    return size
+	current = fileobject.tell()
+	fileobject.seek(0,2) # move the cursor to the end of the file
+	size = fileobject.tell()
+	fileobject.seek(current,0)
+	return size
 
 def skipUntilAddress(f_in,f_out, caddr, taddr):
-    chunk = f_in.read(taddr-caddr)
-    f_out.write(chunk)
-	
+	chunk = f_in.read(taddr-caddr)
+	f_out.write(chunk)
+
 def writeBlankuntilAddress(f_out, caddr, taddr):
 	f_out.write("\x00"*(taddr-caddr))
 
@@ -123,6 +132,7 @@ SrlHeader = namedtuple('SrlHeader',
 	"encryptionSeedSelect "
 	"deviceCapacity "
 	"reserved0 " 
+	"dsiflags " 
 	"romVersion "
 	"internalFlag "
 	"arm9RomOffset "
@@ -156,7 +166,7 @@ SrlHeader = namedtuple('SrlHeader',
 	"nintendoLogoCrc "
 	"headerCrc "
 	"debugReserved ")
-srlHeaderFormat='<12s4s2scbb9sbcIIIIIIIIIIIIIIIIIIIHHII8sII56s156s2sH32s'
+srlHeaderFormat='<12s4s2scbb7s2sbcIIIIIIIIIIIIIIIIIIIHHII8sII56s156s2sH32s'
 srlHeader=SrlHeader._make(unpack_from(srlHeaderFormat, data))
 #pprint(dict(srlHeader._asdict()))
 print "origin header crc "+hex(srlHeader.headerCrc)
@@ -199,6 +209,13 @@ srlHeaderPatched=srlHeader._replace(
 	arm9Autoload=					0x2000A60,
 	)
 
+if args.mode == "dsi":
+	srlHeaderPatched=srlHeaderPatched._replace(
+		deviceCapacity=				srlHeaderPatched.deviceCapacity+2,
+		dsiflags=					'\x01\x00', #disable modcrypt but enable twl
+		unitCode=					'\x03'
+		)
+
 if args.title is not None:
 	srlHeaderPatched=srlHeaderPatched._replace(gameTitle=args.title)
 if args.code is not None:
@@ -210,15 +227,11 @@ data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
 newHdrCrc=CRC16(modbus_flag=True).calculate(data1[0:0x15E])
 srlHeaderPatched=srlHeaderPatched._replace(headerCrc=newHdrCrc)
 
-
-
 print "new header crc "+hex(newHdrCrc)
 if not args.read:
 	pprint(dict(srlHeaderPatched._asdict()))
 else:
 	pprint(dict(srlHeader._asdict()))
-
-
 
 data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
 
@@ -262,7 +275,7 @@ SrlTwlExtHeader = namedtuple('SrlTwlExtHeader',
 	"pubSaveDataSize "
 	"privSaveDataSize "
 	"reserved4 "
-	"unknown3 ")
+	"parentalControl ")
 srlTwlExtHeaderFormat="<20s12s12s4s4s4s4s4sI4sIIIIIIIIIIIIIIIII4sI12sIIII8sII176s16s"
 if srlHeader.headerSize<0x300:
 	#homebrew
@@ -283,6 +296,40 @@ if not args.read:
 		unknown1=			'\x00\x00\x01\x00',
 		reserved_flags=		'\x00\x00\x00\x10'
 		)
+	if args.mode == "dsi":
+		arm9iname = args.arm9i.name
+		arm9isize = getSize(args.arm9i)
+		print "arm9isize : "+hex(arm9isize)
+		args.arm9i.close()
+		arm7iname = args.arm7i.name
+		arm7isize = getSize(args.arm7i)
+		print "arm7isize : "+hex(arm7isize)
+		args.arm7i.close()
+		totaldsisize=arm9isize+arm7isize
+		
+		srlTwlExtHeader=srlTwlExtHeader._replace(
+			MBK_1_5_Settings= 		'\x81\x85\x89\x8d\x80\x84\x88\x8c\x90\x94\x98\x9c\x80\x84\x88\x8c\x90\x94\x98\x9c',
+			MBK_6_8_Settings_ARM7= 	'\xc07\x00\x08@7\xc0\x07\x007@\x07',
+			MBK_6_8_Settings_ARM9= 	'\x00\x00\x00\x00@7\xc0\x07\x007@\x07',
+			accessControl= 			'\x10\x00\x00\x00',
+			arm7ScfgExtMask= 		'\x06\x00\x04\x00',
+			arm7iLoadAddress= 		0x2E80000,
+			arm7iRomOffset= 		srlHeaderPatched.ntrRomSize+arm9isize,
+			arm7iSize= 				arm7isize,
+			arm9iLoadAddress= 		0x2400000,
+			arm9iRomOffset= 		srlHeaderPatched.ntrRomSize,
+			arm9iSize= 				arm9isize,			
+			global_MBK_9_Setting= 	'\x0f\x00\x00\x03',	
+			iconSize=				2112,		
+			pubSaveDataSize= 		81920,
+			regionFlags=			'\xff\xff\xff\xff',	
+			reserved_flags=			'\x00\x00\x00\x01',		
+			title_id=				srlHeaderPatched.gameCode[::-1]+"\x04\x00\x03\x00",
+			twlRomSize=				srlHeaderPatched.ntrRomSize+totaldsisize,
+			unknown1=				'\x00\x00\x01\x00',
+			unknown2=				'\x00\x00\x00\x00|\x0f\x00\x00 \x05\x00\x00',
+			parentalControl=		'\x80'*16 
+			)
 	
 pprint(dict(srlTwlExtHeader._asdict()))
 
@@ -320,7 +367,18 @@ if not args.read:
 		arm9WithSecAreaSha1Hmac=	'\xff'*20,
 		bannerSha1Hmac=				'\xff'*20,
 		signature=					'\xff'*128
-	)
+		)
+	if args.mode == "dsi":
+		srlSignedHeader=srlSignedHeader._replace(
+			arm7Sha1Hmac=				'\xff'*20,
+			arm7iSha1Hmac=				'\xff'*20,
+			arm9Sha1Hmac=				'\xff'*20,
+			arm9WithSecAreaSha1Hmac=	'\xff'*20,
+			arm9iSha1Hmac=				'\xff'*20,
+			bannerSha1Hmac=				'\xff'*20,
+			digestMasterSha1Hmac=		'\xff'*20,
+			signature=					'\xff'*128
+			)
 pprint(dict(srlSignedHeader._asdict()))
 
 data3=pack(*[srlSignedHeaderFormat]+srlSignedHeader._asdict().values())
@@ -368,20 +426,33 @@ if not args.read:
 	filew.write(data2)
 	filew.write(data3[0:0xC80])
 	filew.write('\xff'*16*8)
-	writeBlankuntilAddress(filew,0x1080,0x4000);
+	writeBlankuntilAddress(filew,0x1080,0x4000)
 	
 	if arm9Footer.nitrocode == 0xDEC00621:
-		skipUntilAddress(filer,filew,caddr,srlHeaderPatched.icon_bannerOffset-0x200);
+		skipUntilAddress(filer,filew,caddr,srlHeaderPatched.icon_bannerOffset-0x200)
 	else:
 		# patch ARM9 footer 
-		skipUntilAddress(filer,filew,caddr,arm9FooterAddr);
+		skipUntilAddress(filer,filew,caddr,arm9FooterAddr)
 		filew.write(data4)
 		filer.read(12)
-		skipUntilAddress(filer,filew,arm9FooterAddr+12,srlHeader.icon_bannerOffset-0x200);
+		skipUntilAddress(filer,filew,arm9FooterAddr+12,srlHeader.icon_bannerOffset-0x200)
 
 	filer.read(0x200)
-	skipUntilAddress(filer,filew,srlHeader.icon_bannerOffset,fsize);
+	skipUntilAddress(filer,filew,srlHeader.icon_bannerOffset,fsize)
 	
+	if args.mode == "dsi":
+		# add dsi specific data
+		# dixit apache : Digest Table offset first, then sector table, then Arm9i, then arm7i.
+		# digest block/sector table are not needed for homebrew
+		
+		arm9ifile = open(arm9iname, "rb")
+		skipUntilAddress(arm9ifile,filew,0,arm9isize)
+		arm9ifile.close()
+		
+		arm7ifile = open(arm7iname, "rb")
+		skipUntilAddress(arm7ifile,filew,0,arm7isize)
+		arm7ifile.close()
+		
 	filew.close()
 	filer.close()
 	
