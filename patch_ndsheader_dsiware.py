@@ -21,6 +21,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Patch an nds in order to be ready cia conversion via make_cia --srl=.')
 parser.add_argument('file', metavar='file.nds', type=file, help='nds file to patch')
+parser.add_argument('--verbose', help='verbose mode', action="store_true")
 parser.add_argument('--out', help='output file [optionnal]')
 parser.add_argument('--read', help='print only the header content, do not patch', action="store_true")
 parser.add_argument('--extract', help='extract the content of the rom : header.bin,arm9.bin,arm7.bin,icon.bin,arm9i.bin,arm7i.bin, do not patch', action="store_true")
@@ -106,6 +107,11 @@ def writeBlankuntilAddress(f_out, caddr, taddr):
 fname=args.file.name
 args.file.close()
 
+if not args.read:
+	print "Patching file : "+fname
+else:
+	print "Reading header of file : "+fname
+
 #offset of 0x4600 created
 
 # File size compute
@@ -118,7 +124,8 @@ file = open(fname, 'rb')
 #0x15E from https://github.com/devkitPro/ndstool/ ... source/header.cpp
 hdr = file.read(0x15E)
 hdrCrc=CRC16(modbus_flag=True).calculate(hdr)
-print("{:10s} {:20X}".format('HDR CRC-16 ModBus', hdrCrc))
+if args.verbose:
+	print("{:10s} {:20X}".format('HDR CRC-16 ModBus', hdrCrc))
 #print "origin header cr c"+hdr[0x15E:0x15F]
 #filew = open(fname+".hdr", "wb")
 #filew.write(hdr);
@@ -175,9 +182,9 @@ SrlHeader = namedtuple('SrlHeader',
 	"debugReserved ")
 srlHeaderFormat='<12s4s2scbb7s2sbcIIIIIIIIIIIIIIIIIIIHHII8sII56s156s2sH32s'
 srlHeader=SrlHeader._make(unpack_from(srlHeaderFormat, data))
-#pprint(dict(srlHeader._asdict()))
-print "origin header crc "+hex(srlHeader.headerCrc)
-print "origin secure crc "+hex(srlHeader.secureAreaCrc)
+if args.verbose:
+	print "origin header crc "+hex(srlHeader.headerCrc)
+	print "origin secure crc "+hex(srlHeader.secureAreaCrc)
 
 #SecureArea CRC compute "CRC-16 (Modbus)"
 file = open(fname, 'rb')
@@ -185,12 +192,13 @@ file = open(fname, 'rb')
 file.read(0x200)
 sec = file.read(0x4000)
 secCrc=CRC16(modbus_flag=True).calculate(sec)
-print("{:10s} {:20X}".format('SEC CRC-16 ModBus', secCrc))
-#print "origin header cr c"+hdr[0x15E:0x15F]
-#filew = open(fname+".sec", "wb")
-#filew.write(sec);
-#filew.close()
+if args.verbose:
+	print("{:10s} {:20X}".format('SEC CRC-16 ModBus', secCrc))
 file.close()
+
+if srlHeader.arm7EntryAddress>0x2400000 and not args.read and args.arm7 is None:
+	print "WARNING: .nds arm7EntryAddress greater than 0x2400000 will not boot as cia"
+	print "you need to recompile or swap the arm7 binary with a precompiled one with --arm7"
 
 # Fix srlHeader
 srlHeaderPatched=srlHeader._replace(
@@ -208,7 +216,7 @@ srlHeaderPatched=srlHeader._replace(
 	nintendoLogoCrc= 				'V\xcf',
 	secureAreaCrc=					secCrc,
 	reserved1=						'\x00'*156,
-	# better to recompile/swap the arm7 binary if this is needed
+	# better to recompile or swap the arm7 binary if this is needed
 	#arm7EntryAddress=				0x2380000,
 	#arm7RamAddress=					0x2380000,	
 	#arm7Autoload=					0x2380118,
@@ -237,9 +245,11 @@ data1=pack(*[srlHeaderFormat]+srlHeaderPatched._asdict().values())
 newHdrCrc=CRC16(modbus_flag=True).calculate(data1[0:0x15E])
 srlHeaderPatched=srlHeaderPatched._replace(headerCrc=newHdrCrc)
 
-print "new header crc "+hex(newHdrCrc)
-if not args.read:
-	pprint(dict(srlHeaderPatched._asdict()))
+if args.verbose:
+	print "new header crc "+hex(newHdrCrc)
+if not args.read :
+	if args.verbose:
+		pprint(dict(srlHeaderPatched._asdict()))
 else:
 	pprint(dict(srlHeader._asdict()))
 
@@ -322,8 +332,9 @@ if not args.read:
 			arm9iname = args.arm9i.name
 			arm9isize = getSize(args.arm9i)
 			arm9iRomOffset=srlHeaderPatched.ntrRomSize
-			print "arm9isize : "+hex(arm9isize)
-			print "arm9ioffset : "+hex(srlHeaderPatched.ntrRomSize)
+			if args.verbose:
+				print "arm9isize : "+hex(arm9isize)
+				print "arm9ioffset : "+hex(srlHeaderPatched.ntrRomSize)
 			args.arm9i.close()
 			totaldsisize=arm9isize
 			
@@ -331,8 +342,9 @@ if not args.read:
 			arm7iname = args.arm7i.name
 			arm7isize = getSize(args.arm7i)
 			arm7iRomOffset=srlHeaderPatched.ntrRomSize+arm9isize
-			print "arm7isize : "+hex(arm7isize)
-			print "arm9ioffset : "+hex(srlHeaderPatched.ntrRomSize+arm9isize)
+			if args.verbose:
+				print "arm7isize : "+hex(arm7isize)
+				print "arm9ioffset : "+hex(srlHeaderPatched.ntrRomSize+arm9isize)
 			args.arm7i.close()
 			totaldsisize=arm9isize+arm7isize
 			
@@ -359,8 +371,9 @@ if not args.read:
 			unknown2=				'\x00\x00\x00\x00|\x0f\x00\x00 \x05\x00\x00',
 			parentalControl=		'\x80'*16 
 			)
-	
-pprint(dict(srlTwlExtHeader._asdict()))
+
+if args.verbose or args.read:	
+	pprint(dict(srlTwlExtHeader._asdict()))
 
 data2=pack(*[srlTwlExtHeaderFormat]+srlTwlExtHeader._asdict().values())
 
@@ -408,7 +421,8 @@ if not args.read:
 			digestMasterSha1Hmac=		'\xff'*20,
 			signature=					'\xff'*128
 			)
-pprint(dict(srlSignedHeader._asdict()))
+if args.verbose or args.read:
+	pprint(dict(srlSignedHeader._asdict()))
 
 data3=pack(*[srlSignedHeaderFormat]+srlSignedHeader._asdict().values())
 
@@ -426,16 +440,19 @@ arm9FooterAddr=srlHeader.arm9RomOffset + srlHeader.arm9Size
 file.read(arm9FooterAddr)
 data=file.read(12)
 arm9Footer=ARM9Footer._make(unpack_from(ARM9FooterFormat, data))
-print "footer addr "+hex(arm9FooterAddr)
+if args.verbose:
+	print "footer addr "+hex(arm9FooterAddr)
 if arm9Footer.nitrocode == 0xDEC00621:
-	print "ARM9 footer found."
-	print "no patch needed"
-	print "nitrocode "+hex(arm9Footer.nitrocode)
-	print "versionInfo "+hex(arm9Footer.versionInfo)
-	print "reserved "+hex(arm9Footer.reserved)
-	print "\n"
+	if args.verbose or args.read:
+		print "ARM9 footer found."
+		print "no patch needed"
+		print "nitrocode "+hex(arm9Footer.nitrocode)
+		print "versionInfo "+hex(arm9Footer.versionInfo)
+		print "reserved "+hex(arm9Footer.reserved)
+		print "\n"
 else:
-	print "ARM9 footer not found.\n"
+	if args.verbose or args.read:
+		print "ARM9 footer not found.\n"
 	arm9FooterPatched=arm9Footer._replace(
 		nitrocode=		0xDEC00621,
 		versionInfo=	0xad8,
