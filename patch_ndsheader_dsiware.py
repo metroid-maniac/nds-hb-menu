@@ -24,12 +24,13 @@ parser.add_argument('file', metavar='file.nds', type=file, help='nds file to pat
 parser.add_argument('--verbose', help='verbose mode', action="store_true")
 parser.add_argument('--out', help='output file [optionnal]')
 parser.add_argument('--read', help='print only the header content, do not patch', action="store_true")
-parser.add_argument('--extract', help='extract the content of the rom : header.bin,arm9.bin,arm7.bin,icon.bin,arm9i.bin,arm7i.bin, do not patch', action="store_true")
+parser.add_argument('--extract', help='extract the content of the rom : header.bin,arm9.bin,arm7.bin,icon.bin,arm9i.bin,arm7i.bin, do not patch', action="store_true") #Not yet implemented
 parser.add_argument('--title', help='Game title')
 parser.add_argument('--code', help='Game code')
 parser.add_argument('--maker', help='Maker code')
 parser.add_argument('--mode', help='target mode, default mode is ds [ds|dsdsi|dsi]')
-parser.add_argument('--arm7', type=file, help='swap the ds arm7 binary by the one provided') #Not yet implemented
+parser.add_argument('--arm7', type=file, help='swap the ds arm7 binary by the one provided')
+parser.add_argument('--arm7EntryAddress', help='arm7 ram address of the binary provided')
 parser.add_argument('--arm9i', type=file, help='add a dsi arm9i binary to the file, not needed for homebrew so far')
 parser.add_argument('--arm7i', type=file, help='add a dsi arm7i binary to the file, not needed for homebrew so far')
 parser.add_argument('--digest-block', type=file, help='dsi digest block table')	#Not yet implemented
@@ -132,6 +133,13 @@ if args.verbose:
 #filew.close()
 file.close()
 
+if args.arm7 is not None:
+	arm7Fname=args.arm7.name
+	args.arm7.close()	
+	arm7File = open(arm7Fname, 'rb')
+	arm7FileSize=getSize(arm7File)
+	dataArm7=arm7File.read(arm7FileSize)
+	arm7File.close()
 
 filer = open(fname, 'rb')
 data = filer.read(0x180)
@@ -198,7 +206,7 @@ file.close()
 
 if srlHeader.arm7EntryAddress>0x2400000 and not args.read and args.arm7 is None:
 	print "WARNING: .nds arm7EntryAddress greater than 0x2400000 will not boot as cia"
-	print "you need to recompile or swap the arm7 binary with a precompiled one with --arm7"
+	print "you need to recompile or swap the arm7 binary with a precompiled one with --arm7 and --arm7EntryAddress"
 
 # Fix srlHeader
 srlHeaderPatched=srlHeader._replace(
@@ -223,6 +231,22 @@ srlHeaderPatched=srlHeader._replace(
 	#arm9EntryAddress=				0x2000000,
 	#arm9RamAddress=					0x2000000,
 	#arm9Autoload=					0x2000A60,
+	)
+
+if args.arm7 is not None:
+	if args.arm7EntryAddress is None:
+		print "WARNING : you may need to provide the ARM7 binary entry address via --arm7EntryAddress, default value 0x2380000 used"
+		args.arm7EntryAddress="0x2380000"
+	
+	srlHeaderPatched=srlHeaderPatched._replace(
+		arm7RamAddress=		int(args.arm7EntryAddress, 0),
+		arm7EntryAddress=	int(args.arm7EntryAddress, 0),
+		arm7Size=			arm7FileSize,
+		ntrRomSize=			srlHeaderPatched.ntrRomSize-srlHeader.arm7Size+arm7FileSize,
+		fntOffset=			srlHeaderPatched.fntOffset-srlHeader.arm7Size+arm7FileSize,
+		fatOffset=			srlHeaderPatched.fatOffset-srlHeader.arm7Size+arm7FileSize,
+		icon_bannerOffset=	srlHeaderPatched.icon_bannerOffset-srlHeader.arm7Size+arm7FileSize,
+		deviceCapacity=		srlHeader.deviceCapacity+1
 	)
 
 if args.mode == "dsi":
@@ -474,18 +498,21 @@ if not args.read:
 	filew.write('\xff'*16*8)
 	writeBlankuntilAddress(filew,0x1080,0x4000)
 	
-	if arm9Footer.nitrocode == 0xDEC00621:
-		skipUntilAddress(filer,filew,caddr,srlHeaderPatched.icon_bannerOffset-0x200)
-	else:
+	if arm9Footer.nitrocode != 0xDEC00621:
 		# patch ARM9 footer 
 		skipUntilAddress(filer,filew,caddr,arm9FooterAddr)
 		filew.write(data4)
 		filer.read(12)
-		skipUntilAddress(filer,filew,arm9FooterAddr+12,srlHeader.icon_bannerOffset-0x200)
-
-	filer.read(0x200)
-	skipUntilAddress(filer,filew,srlHeader.icon_bannerOffset,fsize)
-	
+		caddr=arm9FooterAddr+12
+		
+	if args.arm7 is not None:
+		skipUntilAddress(filer,filew,caddr,srlHeader.arm7RomOffset)
+		filew.write(dataArm7)
+		filer.read(srlHeader.arm7Size)
+		caddr = srlHeader.arm7RomOffset+srlHeader.arm7Size
+		
+	skipUntilAddress(filer,filew,caddr,srlHeader.icon_bannerOffset-0x200)
+	filer.read(0x200)	
 	
 	if args.mode == "dsi":
 		# add dsi specific data
