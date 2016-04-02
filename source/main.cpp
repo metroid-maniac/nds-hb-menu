@@ -69,6 +69,11 @@ int main(int argc, char **argv) {
 
 	if (!fatInitDefault()) {
 		iprintf ("fatinitDefault failed!\n");
+		
+		unsigned int * SCFG_EXT=	(unsigned int*)0x4004008;
+		if(*SCFG_EXT>0)
+			iprintf ("SCFG_EXT : %x\n",*SCFG_EXT);
+			
 		stop();
 	}
 

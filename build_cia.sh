@@ -8,7 +8,6 @@ $DEVKITARM/bin/ndstool	-c bootstrap.nds -7 bootstrap.arm7.elf -9 bootstrap.arm9.
 python patch_ndsheader_dsiware.py --read bootstrap.nds > bootstrap.nds_before_patch_header.txt
 python patch_ndsheader_dsiware.py --mode dsi bootstrap.nds
 python patch_ndsheader_dsiware.py --read bootstrap.nds > bootstrap.nds_after_patch_header.txt
-python patch_ndsheader_dsiware.py --read nds-hb-menu-dsiTest.nds > nds-hb-menu-dsiTest_header.txt
 
 $DEVKITARM/bin/ndstool -c nds-hb-menu.nds -7 default.elf -9 hbmenu.elf -g $GAME_INFO -b icon.bmp  "$GAME_TITLE;$GAME_SUBTITLE1;$GAME_SUBTITLE2"
 cp nds-hb-menu.nds nds-hb-menu-dsi.nds

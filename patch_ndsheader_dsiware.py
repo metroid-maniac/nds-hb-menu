@@ -299,7 +299,7 @@ SrlTwlExtHeader = namedtuple('SrlTwlExtHeader',
 	"privSaveDataSize "
 	"reserved4 "
 	"parentalControl ")
-srlTwlExtHeaderFormat="<20s12s12s4s4s4s4s4sI4sIIIIIIIIIIIIIIIII4sI12sIIII8sII176s16s"
+srlTwlExtHeaderFormat="<20s12s12s4s4s4sI4sI4sIIIIIIIIIIIIIIIII4sI12sIIII8sII176s16s"
 if srlHeader.headerSize<0x300:
 	#homebrew
 	srlTwlExtHeader=SrlTwlExtHeader._make(unpack_from(srlTwlExtHeaderFormat, "\x00" * (0x300-0x180)))
@@ -353,7 +353,7 @@ if not args.read:
 			MBK_6_8_Settings_ARM7= 	'\xc07\x00\x08@7\xc0\x07\x007@\x07',
 			MBK_6_8_Settings_ARM9= 	'\x00\x00\x00\x00@7\xc0\x07\x007@\x07',
 			accessControl= 			'0\xf9\x01\x00',
-			arm7ScfgExtMask= 		'\x06\x00\x04\x00',
+			arm7ScfgExtMask= 		0x80040006,
 			arm7iLoadAddress= 		0x2E80000,
 			arm7iRomOffset= 		arm7iRomOffset,
 			arm7iSize= 				arm7isize,
