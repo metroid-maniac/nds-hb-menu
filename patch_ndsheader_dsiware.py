@@ -514,6 +514,10 @@ if not args.read:
 	skipUntilAddress(filer,filew,caddr,srlHeader.icon_bannerOffset-0x200)
 	filer.read(0x200)	
 	
+	caddr=srlHeader.icon_bannerOffset
+	
+	skipUntilAddress(filer,filew,caddr,srlHeader.ntrRomSize)
+	
 	if args.mode == "dsi":
 		# add dsi specific data
 		# dixit apache : Digest Table offset first, then sector table, then Arm9i, then arm7i.
