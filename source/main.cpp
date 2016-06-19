@@ -24,6 +24,7 @@
 #include <fat.h>
 #include <sys/stat.h>
 #include <limits.h>
+#include <nds/disc_io.h>
 
 #include <string.h>
 #include <unistd.h>
@@ -78,41 +79,51 @@ int main(int argc, char **argv) {
 	// Subscreen as a console
 	videoSetModeSub(MODE_0_2D);
 	vramSetBankH(VRAM_H_SUB_BG);
-	consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);
+	consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);	
 	
-	unsigned int * SCFG_ROM=	(unsigned int*)0x4004000;		
-	unsigned int * SCFG_CLK=	(unsigned int*)0x4004004;
 	unsigned int * SCFG_EXT=	(unsigned int*)0x4004008;
-	unsigned int * SCFG_MC=		(unsigned int*)0x4004010;
-	unsigned int * SCFG_ROM_ARM7_COPY=	(unsigned int*)0x2370000;
-	unsigned int * SCFG_EXT_ARM7_COPY=  (unsigned int*)0x2370001;
-
-	if(*SCFG_EXT>0) {
-		iprintf ("DSI SCFG_ROM ARM9 : %x\n\n",*SCFG_ROM);			
-		iprintf ("DSI SCFG_CLK ARM9 : %x\n\n",*SCFG_CLK);
-		iprintf ("DSI SCFG_EXT ARM9 : %x\n\n",*SCFG_EXT);			
-		iprintf ("DSI SCFG_MC ARM9 : %x\n\n",*SCFG_MC);
-		
-		iprintf ("DSI SCFG_ROM ARM7 : %x\n\n",*SCFG_ROM_ARM7_COPY);
-		iprintf ("DSI SCFG_EXT ARM7 : %x\n\n",*SCFG_EXT_ARM7_COPY);
-		
-		//test RAM
-		//unsigned int * TEST32RAM=	(unsigned int*)0xD004000;		
-		//*TEST32RAM = 0x55;
-		//iprintf ("32 MB RAM ACCESS : %x\n\n",*TEST32RAM);
-	}
-			
-	doPause();
+	
+	//unsigned int * SCFG_ROM=	(unsigned int*)0x4004000;		
+	//unsigned int * SCFG_CLK=	(unsigned int*)0x4004004;
+	//unsigned int * SCFG_MC=		(unsigned int*)0x4004010;
+	//unsigned int * SCFG_ROM_ARM7_COPY=	(unsigned int*)0x2370000;
+	//unsigned int * SCFG_EXT_ARM7_COPY=  (unsigned int*)0x2370008;
+	//
+	//if(*SCFG_EXT>0) {
+	//	iprintf ("DSI SCFG_ROM ARM9 : %x\n\n",*SCFG_ROM);			
+	//	iprintf ("DSI SCFG_CLK ARM9 : %x\n\n",*SCFG_CLK);
+	//	iprintf ("DSI SCFG_EXT ARM9 : %x\n\n",*SCFG_EXT);			
+	//	iprintf ("DSI SCFG_MC ARM9 : %x\n\n",*SCFG_MC);
+	//	
+	//	iprintf ("DSI SCFG_ROM ARM7 : %x\n\n",*SCFG_ROM_ARM7_COPY);
+	//	iprintf ("DSI SCFG_EXT ARM7 : %x\n\n",*SCFG_EXT_ARM7_COPY);
+	//	
+	//	//test RAM
+	//	unsigned int * TEST32RAM=	(unsigned int*)0x20004000;		
+	//	*TEST32RAM = 0x55;
+	//	iprintf ("FCRAM ACCESS : %x\n\n",*TEST32RAM);
+	//}
+	
 
 	if (!fatInitDefault()) {
-		iprintf ("fatinitDefault failed!\n");
-		
-		unsigned int * SCFG_EXT=	(unsigned int*)0x4004008;
-		if(*SCFG_EXT>0)
-			iprintf ("SCFG_EXT : %x\n",*SCFG_EXT);
+		iprintf ("fatinitDefault failed!\n");		
 			
 		stop();
 	}
+	
+	if(*SCFG_EXT>0) {
+	    // DSI mode with sd card access
+		iprintf ("SCFG_EXT : %x\n",*SCFG_EXT);
+		
+		// mount the dsi sd card as an additionnal card
+		fatMountSimple("dsisd",&__io_dsisd);
+		
+		printf ("dsisd mounted");
+	}
+			
+	
+	doPause();
+
 
 	keysSetRepeat(25,5);
 

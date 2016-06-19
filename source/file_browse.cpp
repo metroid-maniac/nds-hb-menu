@@ -72,7 +72,7 @@ void getDirectoryContents (vector<DirEntry>& dirContents, const vector<string> e
 	struct stat st;
 
 	dirContents.clear();
-
+	
 	DIR *pdir = opendir ("."); 
 	
 	if (pdir == NULL) {
@@ -153,6 +153,8 @@ string browseForFile (const vector<string> extensionList) {
 	int fileOffset = 0;
 	vector<DirEntry> dirContents;
 	
+	unsigned int * SCFG_EXT=	(unsigned int*)0x4004008;
+	
 	getDirectoryContents (dirContents, extensionList);
 	showDirectoryContents (dirContents, screenOffset);
 	
@@ -216,6 +218,26 @@ string browseForFile (const vector<string> extensionList) {
 			screenOffset = 0;
 			fileOffset = 0;
 			showDirectoryContents (dirContents, screenOffset);
+		}
+		
+		if (pressed & KEY_SELECT) {
+			if(*SCFG_EXT>0) {
+				chdir ("dsisd:/");				
+				getDirectoryContents (dirContents, extensionList);
+				screenOffset = 0;
+				fileOffset = 0;
+				showDirectoryContents (dirContents, screenOffset);
+			}
+		}
+		
+		if (pressed & KEY_START) {
+			if(*SCFG_EXT>0) {
+				chdir ("fat:/");
+				getDirectoryContents (dirContents, extensionList);
+				screenOffset = 0;
+				fileOffset = 0;
+				showDirectoryContents (dirContents, screenOffset);
+			}
 		}
 	}
 }

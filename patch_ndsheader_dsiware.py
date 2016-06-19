@@ -323,7 +323,7 @@ SrlTwlExtHeader = namedtuple('SrlTwlExtHeader',
 	"privSaveDataSize "
 	"reserved4 "
 	"parentalControl ")
-srlTwlExtHeaderFormat="<20s12s12s4s4sII4sI4sIIIIIIIIIIIIIIIII4sI12sIIII8sII176s16s"
+srlTwlExtHeaderFormat="<20s12s12s4s4sIIII4sIIIIIIIIIIIIIIIII4sI12sIIII8sII176s16s"
 if srlHeader.headerSize<0x300:
 	#homebrew
 	srlTwlExtHeader=SrlTwlExtHeader._make(unpack_from(srlTwlExtHeaderFormat, "\x00" * (0x300-0x180)))
@@ -341,7 +341,7 @@ if not args.read:
 		regionFlags=		'\xff\xff\xff\xff',
 		iconSize=			2112,
 		unknown1=			'\x00\x00\x01\x00',
-		reserved_flags=		'\x00\x00\x00\x10'
+		reserved_flags=		0x01000000
 		)
 	if args.mode == "dsi":
 		arm7iRomOffset=srlHeaderPatched.arm7RomOffset
@@ -376,8 +376,10 @@ if not args.read:
 			MBK_1_5_Settings= 		'\x81\x85\x89\x8d\x80\x84\x88\x8c\x90\x94\x98\x9c\x80\x84\x88\x8c\x90\x94\x98\x9c',
 			MBK_6_8_Settings_ARM7= 	'\xc07\x00\x08@7\xc0\x07\x007@\x07',
 			MBK_6_8_Settings_ARM9= 	'\x00\x00\x00\x00@7\xc0\x07\x007@\x07',
-			accessControl=			0x0001F930,
-			arm7ScfgExtMask= 		0x80044000,
+			accessControl=			0x0001F938,
+			#arm7ScfgExtMask= 		0x80044000,
+			arm7ScfgExtMask=		0xFFFFFFFF,
+			reserved_flags=			0x01000000,
 			arm7iLoadAddress= 		0x2E80000,
 			arm7iRomOffset= 		arm7iRomOffset,
 			arm7iSize= 				arm7isize,
@@ -388,7 +390,6 @@ if not args.read:
 			iconSize=				2112,		
 			pubSaveDataSize= 		81920,
 			regionFlags=			'\xff\xff\xff\xff',	
-			reserved_flags=			'\x00\x00\x00\x01',		
 			title_id=				srlHeaderPatched.gameCode[::-1]+"\x04\x00\x03\x00",
 			twlRomSize=				srlHeaderPatched.ntrRomSize+totaldsisize,
 			unknown1=				'\x00\x00\x01\x00',
