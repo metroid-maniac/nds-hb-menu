@@ -222,7 +222,7 @@ string browseForFile (const vector<string> extensionList) {
 		
 		if (pressed & KEY_SELECT) {
 			if(*SCFG_EXT>0) {
-				chdir ("dsisd:/");				
+				chdir ("sd:/");				
 				getDirectoryContents (dirContents, extensionList);
 				screenOffset = 0;
 				fileOffset = 0;

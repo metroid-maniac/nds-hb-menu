@@ -10,3 +10,11 @@ BootStrap/arm9/build
 data
 build
 *.cia
+nds-hb-menu.nds_header.txt
+nds-hb-menu-dsi.nds_header.txt
+bootstrap.nds_after_patch_header.txt
+bootstrap.nds_before_patch_header.txt
+nds-hb-menu-dsiTest_header.txt
+VBinDiff.exe
+nds-hb-menu.nds_header.txt
+nds-hb-menu.nds_header.txt

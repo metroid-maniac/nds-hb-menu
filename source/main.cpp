@@ -111,18 +111,18 @@ int main(int argc, char **argv) {
 		stop();
 	}
 	
-	if(*SCFG_EXT>0) {
+	//if(*SCFG_EXT>0) {
 	    // DSI mode with sd card access
-		iprintf ("SCFG_EXT : %x\n",*SCFG_EXT);
+		//iprintf ("SCFG_EXT : %x\n",*SCFG_EXT);
 		
 		// mount the dsi sd card as an additionnal card
-		fatMountSimple("dsisd",&__io_dsisd);
+		//fatMountSimple("dsisd",&__io_dsisd);
 		
-		printf ("dsisd mounted");
-	}
+		//printf ("dsisd mounted");
+	//}
 			
 	
-	doPause();
+	//doPause();
 
 
 	keysSetRepeat(25,5);
