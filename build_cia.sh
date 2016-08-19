@@ -19,7 +19,7 @@ cp nds-hb-menu.nds nds-hb-menu-dsi-nogba.nds
 ./dlditool.exe BootStrap/r4tfv2.dldi nds-hb-menu-dsi-r4.nds
 ./dlditool.exe dsisd.dldi nds-hb-menu-dsi-dldi.nds
 
-python patch_ndsheader_dsiware.py --title "NDSHOMEBREW" --maker 01 --code AFFE  nds-hb-menu-ds.nds
+python patch_ndsheader_dsiware.py --mode ds  --title "NDSHOMEBREW" --maker 01 --code ASMP  nds-hb-menu-ds.nds
 python patch_ndsheader_dsiware.py --mode dsi nds-hb-menu-dsi.nds 
 python patch_ndsheader_dsiware.py --mode dsi nds-hb-menu-dsi-r4.nds
 python patch_ndsheader_dsiware.py --mode dsi nds-hb-menu-dsi-dldi.nds
