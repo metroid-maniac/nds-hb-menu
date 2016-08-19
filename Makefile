@@ -115,9 +115,9 @@ endif
 
 export GAME_TITLE := $(TARGET)
 
-.PHONY: bootloader bootstub BootStrap $(BUILD) clean
+.PHONY: bootloader bootstub BootStrap clean
 
-all:	bootloader bootstub $(BUILD) BootStrap
+all:	bootloader bootstub BootStrap $(TARGET).nds
 
 dist:	all
 	@rm	-fr	hbmenu
@@ -125,11 +125,28 @@ dist:	all
 	@cp hbmenu.nds hbmenu/BOOT.NDS
 	@cp BootStrap/_BOOT_MP.NDS BootStrap/TTMENU.DAT BootStrap/_DS_MENU.DAT BootStrap/ez5sys.bin BootStrap/akmenu4.nds hbmenu
 	@tar -cvjf hbmenu-$(VERSION).tar.bz2 hbmenu testfiles README.md COPYING -X exclude.lst
+	
+$(TARGET).nds:	$(TARGET).arm7 $(TARGET).arm9
+	ndstool	-c $(TARGET).nds -7 $(TARGET).arm7.elf -9 $(TARGET).arm9.elf -b icon.bmp "NDS HB MENU;Runs in TWL_FIRM MOD or DSI mode;made by devkitpro"
+
+$(TARGET).arm7: arm7/$(TARGET).elf
+	cp arm7/$(TARGET).elf $(TARGET).arm7.elf
+
+$(TARGET).arm9: arm9/$(TARGET).elf
+	cp arm9/$(TARGET).elf $(TARGET).arm9.elf
 
 #---------------------------------------------------------------------------------
-$(BUILD):
-	@[ -d $@ ] || mkdir -p $@
-	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+arm7/$(TARGET).elf:
+	@$(MAKE) -C arm7
+	
+#---------------------------------------------------------------------------------
+arm9/$(TARGET).elf:
+	@$(MAKE) -C arm9
+
+#---------------------------------------------------------------------------------
+#$(BUILD):
+	#@[ -d $@ ] || mkdir -p $@
+	#@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
 #---------------------------------------------------------------------------------
 clean:
@@ -138,6 +155,8 @@ clean:
 	@$(MAKE) -C bootloader clean
 	@$(MAKE) -C bootstub clean
 	@$(MAKE) -C BootStrap clean
+	$(MAKE) -C arm9 clean
+	$(MAKE) -C arm7 clean
 
 data:
 	@mkdir -p data
@@ -157,8 +176,8 @@ else
 #---------------------------------------------------------------------------------
 # main targets
 #---------------------------------------------------------------------------------
-$(OUTPUT).nds	: 	$(OUTPUT).elf
-$(OUTPUT).elf	:	$(OFILES)
+#$(OUTPUT).nds	: 	$(OUTPUT).elf
+#$(OUTPUT).elf	:	$(OFILES)
 
 #---------------------------------------------------------------------------------
 %.bin.o	:	%.bin
