@@ -35,6 +35,10 @@ void VcountHandler() {
 	inputGetAndSend();
 }
 
+unsigned int * SCFG_ROM=	(unsigned int*)0x4004000;
+unsigned int * SCFG_CLK=	(unsigned int*)0x4004004; 
+unsigned int * SCFG_EXT=	(unsigned int*)0x4004008;
+
 //---------------------------------------------------------------------------------
 int main() {
 //---------------------------------------------------------------------------------

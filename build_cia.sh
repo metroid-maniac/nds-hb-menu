@@ -11,15 +11,18 @@ python patch_ndsheader_dsiware.py --read bootstrap.nds > bootstrap.nds_after_pat
 
 $DEVKITARM/bin/ndstool -c nds-hb-menu.nds -7 hbmenu.arm7.elf -9 hbmenu.arm9.elf -g $GAME_INFO -b icon.bmp  "$GAME_TITLE;$GAME_SUBTITLE1;$GAME_SUBTITLE2"
 cp nds-hb-menu.nds nds-hb-menu-ds.nds
+cp nds-hb-menu.nds nds-hb-menu-ds-r4.nds
 cp nds-hb-menu.nds nds-hb-menu-dsi.nds
 cp nds-hb-menu.nds nds-hb-menu-dsi-r4.nds
 cp nds-hb-menu.nds nds-hb-menu-dsi-dldi.nds
 cp nds-hb-menu.nds nds-hb-menu-dsi-nogba.nds
 
 ./dlditool.exe BootStrap/r4tfv2.dldi nds-hb-menu-dsi-r4.nds
+./dlditool.exe BootStrap/r4tfv2.dldi nds-hb-menu-ds-r4.nds
 ./dlditool.exe dsisd.dldi nds-hb-menu-dsi-dldi.nds
 
 python patch_ndsheader_dsiware.py --mode ds  --title "NDSHOMEBREW" --maker 01 --code ASMP  nds-hb-menu-ds.nds
+python patch_ndsheader_dsiware.py --mode ds  --title "NDSHOMEBREW" --maker 01 --code ASMP  nds-hb-menu-ds-r4.nds
 python patch_ndsheader_dsiware.py --mode dsi nds-hb-menu-dsi.nds 
 python patch_ndsheader_dsiware.py --mode dsi nds-hb-menu-dsi-r4.nds
 python patch_ndsheader_dsiware.py --mode dsi nds-hb-menu-dsi-dldi.nds
