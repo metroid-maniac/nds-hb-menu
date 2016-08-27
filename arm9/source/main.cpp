@@ -81,8 +81,7 @@ int main(int argc, char **argv) {
 	vramSetBankH(VRAM_H_SUB_BG);
 	consoleInit(NULL, 0, BgType_Text4bpp, BgSize_T_256x256, 15, 0, false, true);	
 	
-	unsigned int * SCFG_EXT=	(unsigned int*)0x4004008;
-	
+	//unsigned int * SCFG_EXT=	(unsigned int*)0x4004008;
 	//unsigned int * SCFG_ROM=	(unsigned int*)0x4004000;		
 	//unsigned int * SCFG_CLK=	(unsigned int*)0x4004004;
 	//unsigned int * SCFG_MC=		(unsigned int*)0x4004010;
@@ -102,9 +101,8 @@ int main(int argc, char **argv) {
 	//	unsigned int * TEST32RAM=	(unsigned int*)0x20004000;		
 	//	*TEST32RAM = 0x55;
 	//	iprintf ("FCRAM ACCESS : %x\n\n",*TEST32RAM);
-	//}
+	// }
 	
-
 	if (!fatInitDefault()) {
 		iprintf ("fatinitDefault failed!\n");		
 			

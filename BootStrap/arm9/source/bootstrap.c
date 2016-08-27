@@ -59,7 +59,7 @@ void WaitForSlot() {
 
 int main( int argc, char **argv) {
 	
-	unsigned int * SCFG_MC=(unsigned int*)0x4004010;
+	//unsigned int * SCFG_MC=(unsigned int*)0x4004010;
 	
 	consoleDemoInit();
 	
@@ -74,7 +74,7 @@ int main( int argc, char **argv) {
 		printf("SD init failed!\nLauncher not patched!");
 	}
 	while(1) swiWaitForVBlank();
-
+	
 	// Alternate exit loop. Stops program if no cart inserted. Enable if making a Stage3 BootStrap for a flashcart.
 	// Can also be used for other purposes requiring cart reset. Disable original exit loop before using this.
 	/*
@@ -82,13 +82,13 @@ int main( int argc, char **argv) {
 		printf("Cartridge Not Inserted!\nReboot and try again!");
 		} else {
 			if (fatInitDefault()) {
-				runNdsFile("/Boot.nds", 0, NULL);
+				runNdsFile("Boot.nds", 0, NULL);
 				} else {
-					printf("FAT init failed!\n");
+					printf("SD init failed!\nLauncher not patched!");
 				}
 			}
 	
-	while(1) swiWaitForVBlank();	
+	while(1) swiWaitForVBlank();
 	*/
 }
 
