@@ -23,14 +23,72 @@
 
 #include <stdio.h>
 
+// #include <nds/fifocommon.h>
+
 #include "nds_loader_arm9.h"
 
+// Disabled by default
+/*
+void WaitForCart() {
+
+	unsigned int * SCFG_MC=(unsigned int*)0x4004010;
+	
+	// Hold in loop until cartridge detected. (this is skipped if there's one already inserted at boot)
+	printf("No cartridge detected!\nPlease insert a cartridge to\ncontinue.");
+	do {
+		swiWaitForVBlank();
+	} while (*SCFG_MC == 0x11);
+}
+
+// Waits for a preset amount of time then waits for arm7 to send fifo for FIFO_USER_01
+// This means it has powered off slot and has continued the card reset.
+// This ensures arm9 doesn't attempt to init card too soon when it's not ready.
+void WaitForSlot() {
+	
+	// Tell Arm7 it's ready to start card reset.
+	fifoSendValue32(FIFO_USER_02, 1);
+	
+	// Waits for arm7 to power off slot before continuing
+	fifoWaitValue32(FIFO_USER_01);		
+	// Wait for half a second to make sure Power On sequence on arm7 is complete.
+	for (int i = 0; i < 30; i++) {
+		swiWaitForVBlank();
+	}
+}
+*/
+
 int main( int argc, char **argv) {
+	
+	unsigned int * SCFG_MC=(unsigned int*)0x4004010;
+	
 	consoleDemoInit();
+	
+	// Cart Init Stuff. Enable if cart reset needed.
+	// if(*SCFG_MC == 0x11) { WaitForCart(); }
+	
+	// WaitForSlot();
+	
 	if (fatInitDefault()) {
-		runNdsFile("/BOOT.NDS", 0, NULL);
+		runNdsFile("/Boot.nds", 0, NULL);
 	} else {
-		printf("FAT init failed!\n");
+		printf("SD init failed!\nLauncher not patched!");
 	}
 	while(1) swiWaitForVBlank();
+
+	// Alternate exit loop. Stops program if no cart inserted. Enable if making a Stage3 BootStrap for a flashcart.
+	// Can also be used for other purposes requiring cart reset. Disable original exit loop before using this.
+	/*
+	if (*SCFG_MC == 0x11) {
+		printf("Cartridge Not Inserted!\nReboot and try again!");
+		} else {
+			if (fatInitDefault()) {
+				runNdsFile("/Boot.nds", 0, NULL);
+				} else {
+					printf("FAT init failed!\n");
+				}
+			}
+	
+	while(1) swiWaitForVBlank();	
+	*/
 }
+
