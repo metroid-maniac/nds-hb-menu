@@ -153,8 +153,6 @@ string browseForFile (const vector<string> extensionList) {
 	int fileOffset = 0;
 	vector<DirEntry> dirContents;
 	
-	unsigned int * SCFG_EXT=	(unsigned int*)0x4004008;
-	
 	getDirectoryContents (dirContents, extensionList);
 	showDirectoryContents (dirContents, screenOffset);
 	
@@ -221,7 +219,7 @@ string browseForFile (const vector<string> extensionList) {
 		}
 		
 		if (pressed & KEY_SELECT) {
-			if(*SCFG_EXT>0) {
+			if(REG_SCFG_EXT>0) {
 				chdir ("sd:/");				
 				getDirectoryContents (dirContents, extensionList);
 				screenOffset = 0;
@@ -231,7 +229,7 @@ string browseForFile (const vector<string> extensionList) {
 		}
 		
 		if (pressed & KEY_START) {
-			if(*SCFG_EXT>0) {
+			if(REG_SCFG_EXT>0) {
 				chdir ("fat:/");
 				getDirectoryContents (dirContents, extensionList);
 				screenOffset = 0;

@@ -29,10 +29,6 @@
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
 
-unsigned int * SCFG_ROM=	(unsigned int*)0x4004000;
-unsigned int * SCFG_CLK=	(unsigned int*)0x4004004; 
-unsigned int * SCFG_EXT=	(unsigned int*)0x4004008;
-
 //---------------------------------------------------------------------------------
 void VblankHandler(void) {
 //---------------------------------------------------------------------------------
@@ -63,13 +59,13 @@ int main() {
 	// 0x92A00000 : NTR
 	// 0x93FFFF07 : TWL
 	// 0x93FF0F07 : max accessible in NTR mode
-	if(*SCFG_EXT == 0x92A00000) {
-		*SCFG_EXT |= 0x830F0100; // NAND ACCESS
+	if(REG_SCFG_EXT == 0x92A00000) {
+		REG_SCFG_EXT |= 0x830F0100; // NAND ACCESS
 		// SCFG_CLK
 		// 0x0180 : NTR
 		// 0x0187 : TWL
 		// 
-		*SCFG_CLK |= 1;
+		REG_SCFG_CLK |= 1;
 	}
 	
 	// clear sound registers
