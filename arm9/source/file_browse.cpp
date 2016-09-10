@@ -223,6 +223,15 @@ string browseForFile (const vector<string> extensionList) {
 		if (pressed & KEY_SELECT) {
 			// boost cpu
 			REG_SCFG_CLK |= 1;
+			// Clear the screen
+			iprintf ("\x1b[2J");
+			iprintf ("ARM9 cpu boosted");
+			for (int i = 0; i < 60; i++) { swiWaitForVBlank(); }
+			
+			getDirectoryContents (dirContents, extensionList);
+			screenOffset = 0;
+			fileOffset = 0;
+			showDirectoryContents (dirContents, screenOffset);
 		}
 		
 		if (pressed & KEY_START) {
