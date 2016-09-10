@@ -379,7 +379,7 @@ if not args.read:
 			MBK_1_5_Settings= 		'\x81\x85\x89\x8d\x80\x84\x88\x8c\x90\x94\x98\x9c\x80\x84\x88\x8c\x90\x94\x98\x9c',
 			MBK_6_8_Settings_ARM7= 	'\xc07\x00\x08@7\xc0\x07\x007@\x07',
 			MBK_6_8_Settings_ARM9= 	'\x00\x00\x00\x00@7\xc0\x07\x007@\x07',
-			accessControl=			0x00000038,
+			accessControl=			0x00000138,
 			#arm7ScfgExtMask= 		0x80044000,
 			arm7ScfgExtMask=		0x93AF0100,
 			#reserved_flags=		0x01000000,

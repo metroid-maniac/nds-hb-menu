@@ -149,6 +149,17 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
 
 static bool browseDsiSd = true;
 
+void getHeader (u32* ndsHeader) {
+	cardParamCommand (CARD_CMD_DUMMY, 0, 
+		CARD_ACTIVATE | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F), 
+		NULL, 0);
+
+	cardParamCommand(CARD_CMD_HEADER_READ, 0,
+		CARD_ACTIVATE | CARD_nRESET | CARD_CLK_SLOW | CARD_BLK_SIZE(1) | CARD_DELAY1(0x1FFF) | CARD_DELAY2(0x3F),
+		ndsHeader, 512);
+
+}
+
 string browseForFile (const vector<string> extensionList) {
 	int pressed = 0;
 	int screenOffset = 0;
@@ -235,7 +246,18 @@ string browseForFile (const vector<string> extensionList) {
 		}
 		
 		if (pressed & KEY_START) {
+			
 			if(browseDsiSd) {
+				// init the slot1 card			
+				//sysSetCardOwner (BUS_OWNER_ARM9);
+				//iprintf ("\x1b[2J");
+				//iprintf ("Init slot1 card");
+
+				// Delay half a second for the DS card to stabilise
+				//for (int i = 0; i < 30; i++) { swiWaitForVBlank(); }
+				//u32 ndsHeader[0x80];
+				//getHeader (ndsHeader);
+				
 				chdir ("fat:/");
 				getDirectoryContents (dirContents, extensionList);
 				screenOffset = 0;
