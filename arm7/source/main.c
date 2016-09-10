@@ -56,12 +56,12 @@ int main() {
     nocashMessage("ARM7 main.c main");
 	
 	REG_SCFG_ROM = 0x703;	
-	REG_SCFG_EXT = 0x93FFFB00; // NAND/SD Access
+	REG_SCFG_EXT = 0x93AF0100; // NAND/SD Access
 	
 	// SCFG_CLK
 	// 0x0180 : NTR
 	// 0x0187 : TWL
-	REG_SCFG_CLK = 0x0187;
+	REG_SCFG_CLK = 0x0181;
 
 	
 	// clear sound registers
