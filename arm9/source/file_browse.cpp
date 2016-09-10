@@ -147,6 +147,8 @@ void showDirectoryContents (const vector<DirEntry>& dirContents, int startRow) {
 	}
 }
 
+static bool browseDsiSd = true;
+
 string browseForFile (const vector<string> extensionList) {
 	int pressed = 0;
 	int screenOffset = 0;
@@ -219,22 +221,25 @@ string browseForFile (const vector<string> extensionList) {
 		}
 		
 		if (pressed & KEY_SELECT) {
-			if(REG_SCFG_EXT>0) {
-				chdir ("sd:/");				
-				getDirectoryContents (dirContents, extensionList);
-				screenOffset = 0;
-				fileOffset = 0;
-				showDirectoryContents (dirContents, screenOffset);
-			}
+			// boost cpu
+			REG_SCFG_CLK |= 1;
 		}
 		
 		if (pressed & KEY_START) {
-			if(REG_SCFG_EXT>0) {
+			if(browseDsiSd) {
 				chdir ("fat:/");
 				getDirectoryContents (dirContents, extensionList);
 				screenOffset = 0;
 				fileOffset = 0;
 				showDirectoryContents (dirContents, screenOffset);
+				browseDsiSd = false;
+			} else {
+				chdir ("sd:/");				
+				getDirectoryContents (dirContents, extensionList);
+				screenOffset = 0;
+				fileOffset = 0;
+				showDirectoryContents (dirContents, screenOffset);				
+				browseDsiSd = true;
 			}
 		}
 	}

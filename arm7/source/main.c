@@ -97,9 +97,6 @@ int main() {
 		if ( 0 == (REG_KEYINPUT & (KEY_SELECT | KEY_START | KEY_L | KEY_R))) {
 			exitflag = true;
 		}
-		if ( 0 == (REG_KEYINPUT & (KEY_START))) {
-			dsi_switchToDsMode();
-		}
 		swiWaitForVBlank();
 	}
 	return 0;
