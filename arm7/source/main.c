@@ -55,18 +55,14 @@ int main() {
 //---------------------------------------------------------------------------------
     nocashMessage("ARM7 main.c main");
 	
-	// SCFG_EXT
-	// 0x92A00000 : NTR
-	// 0x93FFFF07 : TWL
-	// 0x93FF0F07 : max accessible in NTR mode
-	if(REG_SCFG_EXT == 0x92A00000) {
-		REG_SCFG_EXT |= 0x830F0100; // NAND ACCESS
-		// SCFG_CLK
-		// 0x0180 : NTR
-		// 0x0187 : TWL
-		// 
-		REG_SCFG_CLK |= 1;
-	}
+	REG_SCFG_ROM = 0x703;	
+	REG_SCFG_EXT = 0x93FFFB00; // NAND/SD Access
+	
+	// SCFG_CLK
+	// 0x0180 : NTR
+	// 0x0187 : TWL
+	REG_SCFG_CLK = 0x0187;
+
 	
 	// clear sound registers
 	dmaFillWords(0, (void*)0x04000400, 0x100);
@@ -100,6 +96,9 @@ int main() {
 	while (!exitflag) {
 		if ( 0 == (REG_KEYINPUT & (KEY_SELECT | KEY_START | KEY_L | KEY_R))) {
 			exitflag = true;
+		}
+		if ( 0 == (REG_KEYINPUT & (KEY_START))) {
+			dsi_switchToDsMode();
 		}
 		swiWaitForVBlank();
 	}

@@ -64,7 +64,9 @@ void doPause() {
 //---------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //---------------------------------------------------------------------------------
-
+	REG_SCFG_CLK = 0x85;
+	REG_SCFG_EXT = 0x8307F100; // NAND/SD Access
+	
 	// overwrite reboot stub identifier
 	extern u64 *fake_heap_end;
 	*fake_heap_end = 0;
