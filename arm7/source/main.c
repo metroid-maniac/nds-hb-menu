@@ -56,7 +56,7 @@ int main() {
     nocashMessage("ARM7 main.c main");
 	
 	REG_SCFG_ROM = 0x703;	
-	REG_SCFG_EXT = 0x93AF0100; // NAND/SD Access
+	REG_SCFG_EXT = 0x93A40000; // NAND/SD Access
 	
 	// SCFG_CLK
 	// 0x0180 : NTR
