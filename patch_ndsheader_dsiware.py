@@ -381,7 +381,7 @@ if not args.read:
 			MBK_6_8_Settings_ARM9= 	'\x00\x00\x00\x00@7\xc0\x07\x007@\x07',
 			accessControl=			0x00000138,
 			#arm7ScfgExtMask= 		0x80044000,
-			arm7ScfgExtMask=		0x93AF0100,
+			arm7ScfgExtMask=		0x80040000,
 			#reserved_flags=		0x01000000,
 			reserved_flags=			0x00000000,
 			arm7iLoadAddress= 		0x2E80000,

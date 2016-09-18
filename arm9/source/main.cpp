@@ -20,6 +20,7 @@
 
 ------------------------------------------------------------------*/
 #include <nds.h>
+#include <nds/fifocommon.h>
 #include <stdio.h>
 #include <fat.h>
 #include <sys/stat.h>
@@ -35,6 +36,9 @@
 #include "hbmenu_banner.h"
 
 #include "iconTitle.h"
+
+#include "bootsplash.h"
+#include "inifile.h"
 
 using namespace std;
 
@@ -64,9 +68,54 @@ void doPause() {
 //---------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //---------------------------------------------------------------------------------
-	REG_SCFG_CLK = 0x80;
-	REG_SCFG_EXT = 0x83000000; // NAND/SD Access
-	
+	// REG_SCFG_CLK = 0x80;
+	REG_SCFG_CLK = 0x85;
+
+	bool UseNTRSplash = true;
+	bool TriggerExit = false;
+
+	if (fatInitDefault()) {
+		CIniFile hbmenuini( "sd:/nds/hbmenu.ini" );
+		if(hbmenuini.GetInt("TWL-HOMEBREWMENU","NTR_CLOCK",0) == 0) { UseNTRSplash = false; }
+		if(hbmenuini.GetInt("TWL-HOMEBREWMENU","DISABLE_ANIMATION",0) == 0) { BootSplashInit(UseNTRSplash); }
+		if(hbmenuini.GetInt("TWL-HOMEBREWMENU","NTR_CLOCK",0) == 1) {
+			REG_SCFG_CLK = 0x80;
+			fifoSendValue32(FIFO_USER_04, 1);
+		}
+
+		if(hbmenuini.GetInt("TWL-HOMEBREWMENU","RESET_SLOT1",0) == 1) {
+			if(REG_SCFG_MC == 0x11) { 
+				consoleDemoInit();
+				printf("Please insert a cartridge...\n");
+				do { swiWaitForVBlank(); } 
+				while (REG_SCFG_MC == 0x11);
+			}
+			fifoSendValue32(FIFO_USER_02, 1);
+		}
+
+		fifoSendValue32(FIFO_USER_01, 1);
+		fifoWaitValue32(FIFO_USER_03);
+
+		// Only time SCFG should be locked is for compatiblity with NTR retail stuff.
+		// So NTR SCFG values (that preserve SD access) are always used when locking.
+		// Locking Arm9 SCFG kills SD access. So that will not occur here.
+		if(hbmenuini.GetInt("TWL-HOMEBREWMENU","LOCK_ARM7_SCFG_EXT",0) == 1) {
+			fifoSendValue32(FIFO_USER_05, 1);
+			REG_SCFG_EXT = 0x83000000;
+		} else {
+			if(hbmenuini.GetInt("TWL-HOMEBREWMENU","ENABLE_ALL_TWLSCFG",0) == 1) {
+				fifoSendValue32(FIFO_USER_06, 1);
+				REG_SCFG_EXT = 0x8307F100;
+			} else {
+				REG_SCFG_EXT = 0x83000000;
+			}
+		}
+		// Tell Arm7 to apply changes.
+		fifoSendValue32(FIFO_USER_07, 1);
+
+		for (int i = 0; i < 20; i++) { swiWaitForVBlank(); }
+	}
+
 	// overwrite reboot stub identifier
 	extern u64 *fake_heap_end;
 	*fake_heap_end = 0;
@@ -86,7 +135,7 @@ int main(int argc, char **argv) {
 	if (!fatInitDefault()) {
 		iprintf ("fatinitDefault failed!\n");		
 			
-		stop();
+		TriggerExit = true;
 	}
 
 	keysSetRepeat(25,5);
@@ -96,6 +145,11 @@ int main(int argc, char **argv) {
 	extensionList.push_back(".argv");
 
 	while(1) {
+
+		if(TriggerExit) { 
+		do { swiWaitForVBlank(); scanKeys(); } while (!keysDown());
+		break;
+		}
 
 		filename = browseForFile(extensionList);
 
