@@ -65,6 +65,53 @@ void doPause() {
 	scanKeys();
 }
 
+void runFile(string filename) {
+	vector<char*> argarray;
+	
+	if ( strcasecmp (filename.c_str() + filename.size() - 5, ".argv") == 0) {
+		FILE *argfile = fopen(filename.c_str(),"rb");
+		char str[PATH_MAX], *pstr;
+		const char seps[]= "\n\r\t ";
+
+		while( fgets(str, PATH_MAX, argfile) ) {
+			// Find comment and end string there
+			if( (pstr = strchr(str, '#')) )
+				*pstr= '\0';
+
+			// Tokenize arguments
+			pstr= strtok(str, seps);
+
+			while( pstr != NULL ) {
+				argarray.push_back(strdup(pstr));
+				pstr= strtok(NULL, seps);
+			}
+		}
+		fclose(argfile);
+		filename = argarray.at(0);
+	} else {
+		argarray.push_back(strdup(filename.c_str()));
+	}
+
+	if ( strcasecmp (filename.c_str() + filename.size() - 4, ".nds") != 0 || argarray.size() == 0 ) {
+		iprintf("no nds file specified\n");
+	} else {
+		iprintf("Running %s with %d parameters\n", argarray[0], argarray.size());
+		int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
+		iprintf("Start failed. Error %i\n", err);
+		doPause();
+	}
+}
+
+std::string ReplaceAll(std::string str, const std::string& from, const std::string& to) {
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
+    }
+    return str;
+}
+
+
 //---------------------------------------------------------------------------------
 int main(int argc, char **argv) {
 //---------------------------------------------------------------------------------
@@ -73,9 +120,13 @@ int main(int argc, char **argv) {
 
 	bool UseNTRSplash = true;
 	bool TriggerExit = false;
+	std::string	bootstrapPath = "";
 
 	if (fatInitDefault()) {
-		CIniFile hbmenuini( "sd:/nds/hbmenu.ini" );
+		CIniFile hbmenuini( "sd:/_nds/hbmenu.ini" );
+		
+		bootstrapPath = hbmenuini.GetString( "TWL-HOMEBREWMENU", "BOOTSTRAP_INI", "");	
+				
 		if(hbmenuini.GetInt("TWL-HOMEBREWMENU","NTR_CLOCK",0) == 0) { UseNTRSplash = false; }
 		if(hbmenuini.GetInt("TWL-HOMEBREWMENU","DISABLE_ANIMATION",0) == 0) { BootSplashInit(UseNTRSplash); }
 		if(hbmenuini.GetInt("TWL-HOMEBREWMENU","NTR_CLOCK",0) == 1) {
@@ -135,6 +186,8 @@ int main(int argc, char **argv) {
 	if (!fatInitDefault()) {
 		iprintf ("fatinitDefault failed!\n");		
 			
+		doPause();
+		
 		TriggerExit = true;
 	}
 
@@ -159,7 +212,6 @@ int main(int argc, char **argv) {
 		vector<char*> argarray;
 
 		if ( strcasecmp (filename.c_str() + filename.size() - 5, ".argv") == 0) {
-
 			FILE *argfile = fopen(filename.c_str(),"rb");
 			char str[PATH_MAX], *pstr;
 			const char seps[]= "\n\r\t ";
@@ -190,6 +242,18 @@ int main(int argc, char **argv) {
 			strcpy (filePath + pathLen, name);
 			free(argarray.at(0));
 			argarray.at(0) = filePath;
+			
+			if (bootstrapPath.size()>0) {
+				CIniFile bootstrapini( bootstrapPath );
+				std::string path = filePath;
+				path = ReplaceAll( path, "sd:/", "fat:/");
+				bootstrapini.SetString("NDS-BOOTSTRAP", "NDS_PATH",path);
+				filename = bootstrapini.GetString("NDS-BOOTSTRAP", "BOOTSTRAP_PATH","");
+				filename = ReplaceAll( filename, "fat:/", "sd:/");
+				bootstrapini.SaveIniFile( bootstrapPath);
+				runFile(filename);
+			}
+			
 			iprintf ("Running %s with %d parameters\n", argarray[0], argarray.size());
 			int err = runNdsFile (argarray[0], argarray.size(), (const char **)&argarray[0]);
 			iprintf ("Start failed. Error %i\n", err);
@@ -206,7 +270,6 @@ int main(int argc, char **argv) {
 			scanKeys();
 			if (!(keysHeld() & KEY_A)) break;
 		}
-
 	}
 
 	return 0;
