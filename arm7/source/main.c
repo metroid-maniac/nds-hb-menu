@@ -1,6 +1,6 @@
 /*---------------------------------------------------------------------------------
 
-	default ARM7 core
+	"default" ARM7 core
 
 		Copyright (C) 2005 - 2010
 		Michael Noland (joat)
@@ -28,6 +28,7 @@
 
 ---------------------------------------------------------------------------------*/
 #include <nds.h>
+#include <nds/system.h>
 #include <maxmod7.h>
 
 //---------------------------------------------------------------------------------
@@ -89,7 +90,7 @@ int main() {
 	installSystemFIFO();
 
 	fifoWaitValue32(FIFO_USER_01);
-	if(fifoCheckValue32(FIFO_USER_02)) { dsi_resetSlot1(); }
+	if(fifoCheckValue32(FIFO_USER_02)) { ;} //dsi_resetSlot1(); }
 	fifoSendValue32(FIFO_USER_03, 1);
 
 	fifoWaitValue32(FIFO_USER_07);
