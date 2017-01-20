@@ -248,6 +248,10 @@ int main(int argc, char **argv) {
 				std::string path = filePath;
 				path = ReplaceAll( path, "sd:/", "fat:/");
 				bootstrapini.SetString("NDS-BOOTSTRAP", "NDS_PATH",path);
+                std::string savepath(path);
+                savepath.resize(savepath.length() - 3);
+                savepath = savepath + "sav";
+                bootstrapini.SetString("NDS-BOOTSTRAP", "SAV_PATH",savepath);
 				filename = bootstrapini.GetString("NDS-BOOTSTRAP", "BOOTSTRAP_PATH","");
 				filename = ReplaceAll( filename, "fat:/", "sd:/");
 				bootstrapini.SaveIniFile( bootstrapPath);
